@@ -1,0 +1,19 @@
+{
+  "name": "pcforge",
+  "version": "1.0.0",
+  "description": "PCForge Discord Bot — PC Building Minigame",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "mongoose": "^8.3.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

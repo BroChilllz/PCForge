@@ -1,0 +1,202 @@
+// handlers/economyHandler.js — All earnings math
+import { tasks } from '../game/tasks.js';
+import { parts as PARTS } from '../game/parts.js';
+import { WEAR_RATES, XP_THRESHOLDS, XP_REWARDS, MAX_COLLECT_HOURS, marketEvents } from '../game/config.js';
+
+export function getMarketMultiplier(marketState, taskId) {
+  if (!marketState || !marketState.eventId) return 1.0;
+  const event = marketEvents.find(e => e.id === marketState.eventId);
+  if (!event) return 1.0;
+  if (event.effect === 'ALL_EARNINGS_0_8') return 0.8;
+  if (event.affectedTasks && event.affectedTasks.includes(taskId)) return event.multiplier ?? 1.0;
+  return 1.0;
+}
+
+export function calculateEarnings(pc, player, marketState) {
+  if (!pc.built || !pc.task || pc.task === 'idle' || !pc.online) return 0;
+  if (pc.offlineUntil && new Date() < new Date(pc.offlineUntil)) return 0;
+
+  const task = tasks[pc.task];
+  if (!task) return 0;
+
+  const cpuPart = PARTS[pc.parts.cpu];
+  const gpuPart = PARTS[pc.parts.gpu];
+  const ramPart = PARTS[pc.parts.ram];
+  const psuPart = PARTS[pc.parts.psu];
+
+  // Wear penalty
+  let wearMultiplier = 1.0;
+  for (const [component, wearVal] of Object.entries(pc.wear)) {
+    if (wearVal >= 100) return 0;
+    if (wearVal >= 80) wearMultiplier *= 0.85;
+  }
+
+  // PSU sufficiency
+  const totalTdp = (cpuPart?.wattage || 0) + (gpuPart?.wattage || 0);
+  const psuMultiplier = psuPart && psuPart.wattage >= totalTdp ? 1.0 : 0.6;
+
+  // Performance scores
+  const cpuScore = cpuPart?.score || 0;
+  const gpuScore = gpuPart?.score || 0;
+  const ramScore = ramPart?.score || 0;
+  const combinedScore = (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
+
+  // Bottleneck penalty
+  const scores = [cpuScore, gpuScore, ramScore].filter(s => s > 0);
+  const maxScore = scores.length ? Math.max(...scores) : 1;
+  const minScore = scores.length ? Math.min(...scores) : 0;
+  const bottleneckMultiplier = minScore < maxScore * 0.3 ? 0.7 : 1.0;
+
+  // Earnings scaling
+  const scalingBase = task.primaryStat === 'cpu' ? cpuScore
+    : task.primaryStat === 'gpu' ? gpuScore
+    : task.primaryStat === 'ram' ? ramScore
+    : combinedScore;
+  let scaledEarnings = task.baseEarningsPerHour * (1 + (scalingBase / 10) * task.earningsScalingFactor);
+
+  // Task-specific modifiers
+  if (task.earningsTax) scaledEarnings *= (1 - task.earningsTax);
+  if (task.earningsVariance) {
+    const variance = (Math.random() * 2 - 1) * task.earningsVariance;
+    scaledEarnings *= (1 + variance);
+  }
+
+  // Market multiplier
+  const marketMultiplier = getMarketMultiplier(marketState, task.id);
+
+  // Active boost check
+  let boostMultiplier = 1.0;
+  if (pc.activeBoost && pc.activeBoost.expiresAt && new Date() < new Date(pc.activeBoost.expiresAt)) {
+    if (['EARNINGS_2X_2HR', 'MINING_2X_4HR'].includes(pc.activeBoost.type)) {
+      boostMultiplier = pc.activeBoost.multiplier || 2.0;
+    }
+  }
+
+  // Prestige multiplier
+  const prestigeMultiplier = 1 + (player.prestige * 0.10);
+
+  // Hours since last collected (cap at 24)
+  const hoursSinceCollect = Math.min(
+    (Date.now() - new Date(pc.lastCollected).getTime()) / 3600000,
+    MAX_COLLECT_HOURS
+  );
+
+  const earnings = scaledEarnings
+    * wearMultiplier
+    * psuMultiplier
+    * bottleneckMultiplier
+    * marketMultiplier
+    * boostMultiplier
+    * prestigeMultiplier
+    * hoursSinceCollect;
+
+  return Math.max(0, Math.round(earnings * 100) / 100);
+}
+
+export function applyWear(pc, hoursElapsed) {
+  if (!pc.built || !pc.task || pc.task === 'idle') return pc.wear;
+  const task = tasks[pc.task];
+  if (!task || task.wearRateMultiplier === 0) return pc.wear;
+
+  const newWear = { ...pc.wear };
+  const wearComponents = ['cpu', 'gpu', 'ram', 'storage', 'psu', 'cooling'];
+
+  for (const comp of wearComponents) {
+    const partId = pc.parts[comp];
+    if (!partId) continue;
+    const part = PARTS[partId];
+    if (!part) continue;
+    const baseRate = WEAR_RATES[part.tier] ?? 0.35;
+    const wearIncrease = baseRate * task.wearRateMultiplier * hoursElapsed;
+    newWear[comp] = Math.min(100, (newWear[comp] || 0) + wearIncrease);
+  }
+
+  return newWear;
+}
+
+export function calculateLevelFromXp(xp, thresholds) {
+  let level = 1;
+  for (let i = 1; i < thresholds.length; i++) {
+    if (xp >= thresholds[i]) level = i + 1;
+    else break;
+  }
+  return level;
+}
+
+export function addXp(player, amount) {
+  player.xp += amount;
+  const newLevel = calculateLevelFromXp(player.xp, XP_THRESHOLDS);
+  const leveled = newLevel > player.level;
+  player.level = newLevel;
+  return { leveled, newLevel };
+}
+
+export function analyzeBottleneck(pc) {
+  const cpu = PARTS[pc.parts?.cpu];
+  const gpu = PARTS[pc.parts?.gpu];
+  const ram = PARTS[pc.parts?.ram];
+  const psu = PARTS[pc.parts?.psu];
+  const cooling = PARTS[pc.parts?.cooling];
+
+  if (!cpu || !gpu || !ram) return ['⚠️ Missing key components — build is incomplete.'];
+
+  const observations = [];
+  const cpuScore = cpu.score;
+  const gpuScore = gpu.score;
+  const ramScore = ram.score;
+  const combined = (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
+
+  if (gpuScore > cpuScore * 3) {
+    observations.push('🖥️ Your CPU is writing a strongly-worded letter to your GPU. It\'s being completely ignored.');
+  }
+  if (cpuScore > gpuScore * 3) {
+    observations.push('💤 Your GPU is napping. Full-time. Paid vacation.');
+  }
+  if (ramScore < combined * 0.3) {
+    observations.push('🐌 Your RAM is the weak link. Your entire rig is waiting on it like a pizza delivery.');
+  }
+  if (psu) {
+    const totalTdp = (cpu.wattage || 0) + (gpu.wattage || 0);
+    if (psu.wattage < totalTdp) {
+      observations.push('💥 Your PSU is lying to you. And itself. It will find out the hard way.');
+    }
+  }
+  if (cooling && ['exotic', 'legendary', 'mythic'].includes(cpu.tier)) {
+    if (['stock_cooler', 'cooler_budget_tower'].includes(cooling.id)) {
+      observations.push('🔥 A stock cooler on THAT CPU? You absolute daredevil.');
+    }
+  }
+  const minTier = ['budget', 'midrange', 'highend', 'exotic', 'legendary', 'mythic'];
+  const cpuIdx = minTier.indexOf(cpu.tier);
+  const gpuIdx = minTier.indexOf(gpu.tier);
+  const ramIdx = minTier.indexOf(ram.tier);
+  if (observations.length === 0 && cpuIdx >= 2 && gpuIdx >= 2 && ramIdx >= 2) {
+    observations.push('✅ Textbook build. No notes. Chef\'s kiss. 🤌');
+  }
+  if (observations.length === 0) {
+    observations.push('📊 Build looks balanced. Nothing exceptional, nothing catastrophic.');
+  }
+
+  return observations;
+}
+
+export function generateBenchmark(pc) {
+  const cpu = PARTS[pc.parts?.cpu];
+  const gpu = PARTS[pc.parts?.gpu];
+  const ram = PARTS[pc.parts?.ram];
+
+  if (!cpu || !gpu || !ram) return null;
+
+  const cpuScore = Math.round(cpu.score * 1000);
+  const gpuScore = Math.round(gpu.score * 1000);
+  const ramScore = Math.round(ram.score * 1000);
+  const totalScore = Math.round((cpu.score * 0.35 + gpu.score * 0.45 + ram.score * 0.20) * 1000);
+
+  return { cpuScore, gpuScore, ramScore, totalScore };
+}
+
+export function getCurrentMarketEvent(player) {
+  if (!player.activeEvent || !player.activeEvent.eventId) return null;
+  if (new Date() > new Date(player.activeEvent.expiresAt)) return null;
+  return marketEvents.find(e => e.id === player.activeEvent.eventId) || null;
+}
