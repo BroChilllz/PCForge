@@ -34,6 +34,7 @@ function successEmbed(title, desc) {
 
 // ── Main router ────────────────────────────────────────────────────
 export async function handleInteraction(interaction) {
+  console.log('interaction id:', interaction.customId);
   const cd = checkCooldown(interaction.user.id);
   if (cd > 0) {
     return interaction.reply({ embeds: [errEmbed(`⏱️ Slow down! Wait **${cd}s**.`)], ephemeral: true });
