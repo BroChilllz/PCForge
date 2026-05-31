@@ -227,6 +227,11 @@ export function renderPcDetail(player, pc, marketState) {
   // Bottleneck analysis
   const bottleneck = analyzeBottleneck(pc);
 
+  console.log('task:', task?.id);
+  console.log('gpuScore:', gpuScore);
+  console.log('scalingBase:', scalingBase);
+  console.log('earningsPerHour:', earningsPerHour);
+  
   const cpuScore = PARTS[pc.parts.cpu]?.score || 0;
   const gpuScore = PARTS[pc.parts.gpu]?.score || 0;
   const ramScore = PARTS[pc.parts.ram]?.score || 0;
