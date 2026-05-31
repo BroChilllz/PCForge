@@ -372,13 +372,19 @@ function showBuildStep(interaction, player, slot, currentSlot, selected) {
     });
   }
 
-  const options = owned.slice(0, 25).map((item, i) => {
-    const p = PARTS[item.partId];
+  const options = available.slice(0, 25).map(t => {
+    const scalingBase = t.primaryStat === 'cpu' ? (PARTS[pc.parts.cpu]?.score || 0)
+      : t.primaryStat === 'gpu' ? (PARTS[pc.parts.gpu]?.score || 0)
+      : t.primaryStat === 'ram' ? (PARTS[pc.parts.ram]?.score || 0)
+      : ((PARTS[pc.parts.cpu]?.score || 0) * 0.35) + ((PARTS[pc.parts.gpu]?.score || 0) * 0.45) + ((PARTS[pc.parts.ram]?.score || 0) * 0.20);
+  
+    const estimatedPerHour = t.baseEarningsPerHour * (1 + (scalingBase / 10) * t.earningsScalingFactor);
+  
     return new StringSelectMenuOptionBuilder()
-      .setLabel(`${p.name} — Score: ${p.score}`)
-      .setValue(`${i}`) // inventory index within owned
-      .setDescription(`${p.tier} | ${wearBar(item.wear || 0).substring(0, 50)}`)
-      .setEmoji(tierEmoji(p.tier));
+      .setLabel(`${t.name} — ~${formatMoney(estimatedPerHour)}/hr`)
+      .setValue(`assign_${pc.slot}_${t.id}`)
+      .setDescription(`Risk: ${'⚠️'.repeat(t.riskLevel) || 'None'} | Lvl ${t.levelRequired}+`)
+      .setEmoji(t.emoji.replace(/\uFE0F/g, ''));
   });
 
   const embed = new EmbedBuilder()
