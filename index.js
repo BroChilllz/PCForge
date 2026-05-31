@@ -15,11 +15,7 @@ http.createServer((req, res) => res.end('PCForge Online')).listen(process.env.PO
 
 // ── Discord client ─────────────────────────────────────────────────
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds]  // GuildMessages + MessageContent not needed for slash commands, and they error in DMs
 });
 
 // ── Cooldown map (in-memory, per user) ────────────────────────────
