@@ -18,7 +18,7 @@ export const tasks = {
     flavor: 'Number go up. Eventually. Hopefully.'
   },
   ethereum_mining: {
-    id: 'ethereum_mining', name: 'Ethereum Mining', emoji: 'Ξ',
+    id: 'ethereum_mining', name: 'Ethereum Mining', emoji: '💎',
     description: 'Mine ETH before someone invents a reason to stop.',
     requirements: { minCpuScore: 0, minGpuScore: 2.0, minRamScore: 0, minCombinedScore: 0 },
     baseEarningsPerHour: 4, earningsScalingFactor: 0.7,
