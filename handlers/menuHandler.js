@@ -227,9 +227,23 @@ export function renderPcDetail(player, pc, marketState) {
   // Bottleneck analysis
   const bottleneck = analyzeBottleneck(pc);
 
+  const cpuScore = PARTS[pc.parts.cpu]?.score || 0;
+  const gpuScore = PARTS[pc.parts.gpu]?.score || 0;
+  const ramScore = PARTS[pc.parts.ram]?.score || 0;
+  
+  let earningsPerHour = 0;
+  if (task) {
+    const scalingBase = task.primaryStat === 'cpu' ? cpuScore
+      : task.primaryStat === 'gpu' ? gpuScore
+      : task.primaryStat === 'ram' ? ramScore
+      : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
+    earningsPerHour = task.baseEarningsPerHour * (1 + (scalingBase / 10) * task.earningsScalingFactor);
+  }
+  
   embed.setDescription(
     `**Status:** ${statusEmoji(pc)} ${isOffline ? '🔴 Offline' : (task ? `🟢 ${task.emoji} ${task.name}` : '🟡 Idle')}\n` +
     `**Pending Earnings:** +${formatMoney(pendingEarnings)} 💰\n` +
+    (task ? `**Earning:** ${formatMoney(earningsPerHour)}/hr\n` : '') +
     `**Total Earned:** ${formatMoney(pc.totalEarned)}\n\n` +
     `**Analysis:** ${bottleneck[0]}`
   );
