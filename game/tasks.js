@@ -76,7 +76,7 @@ export const tasks = {
     flavor: 'GPU-heavy. High wear. Excellent for powerful GPUs.'
   },
   weather_ai: {
-    id: 'weather_ai', name: 'Weather Prediction AI', emoji: '🌦️',
+    id: 'weather_ai', name: 'Weather Prediction AI', emoji: '⛅',
     description: 'Predict the weather with more accuracy than your local news.',
     requirements: { minCpuScore: 5.0, minGpuScore: 5.0, minRamScore: 4.0, minCombinedScore: 18.0 },
     baseEarningsPerHour: 25, earningsScalingFactor: 1.1,
