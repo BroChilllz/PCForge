@@ -29,26 +29,5 @@ export const playCommand = {
       console.error('play command error:', err);
       await interaction.editReply({ content: '❌ Something went wrong. Try again!' });
     }
-  },
-
-  async executePrefix(message) {
-    try {
-      let player = await Player.findOne({ userId: message.author.id });
-      if (!player) {
-        player = new Player({
-          userId: message.author.id,
-          username: message.author.username
-        });
-        await player.save();
-      } else {
-        player.username = message.author.username;
-        await player.save();
-      }
-      const response = renderMainMenu(player);
-      await message.reply(response);
-    } catch (err) {
-      console.error('!play error:', err);
-      await message.reply('❌ Something went wrong. Try again!');
-    }
   }
 };
