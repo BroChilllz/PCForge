@@ -43,9 +43,13 @@ export async function handleInteraction(interaction) {
   await interaction.deferUpdate().catch(() => {});
 
   try {
-    const player = await Player.findOne({ userId: interaction.user.id });
+    let player = await Player.findOne({ userId: interaction.user.id });
     if (!player) {
-      return interaction.editReply({ embeds: [errEmbed('Use `/play` to start.')], components: [] });
+      player = new Player({
+        userId: interaction.user.id,
+        username: interaction.user.username
+      });
+      await player.save();
     }
     player.username = interaction.user.username;
     const marketState = getMarketState();
