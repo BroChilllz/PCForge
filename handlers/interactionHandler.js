@@ -141,8 +141,14 @@ export async function handleInteraction(interaction) {
     if (id.startsWith('build_select_') && interaction.isStringSelectMenu()) {
       return handleBuildSelect(interaction, player, id);
     }
-    if (id.startsWith('build_confirm_')) {
-      return handleBuildConfirm(interaction, player, id);
+    if (id.startsWith('build_do_')) {
+      const slot = parseInt(id.replace('build_do_', ''));
+      if (!player.pendingBuild || player.pendingBuild.slot !== slot) {
+        return interaction.editReply({ embeds: [errEmbed('Build session expired. Please start over.')], components: [backRow(`pc_slot_${slot}`)] });
+      }
+      const selectedParts = player.pendingBuild.parts;
+      player.pendingBuild = null;
+      return executeBuild(interaction, player, slot, selectedParts);
     }
 
     // ── Inventory ──────────────────────────────────────────────────
