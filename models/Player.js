@@ -12,6 +12,13 @@ const PlayerSchema = new mongoose.Schema({
   karmaPoints: { type: Number, default: 0 },
   scavengeLastUsed: Date,
   totalLifetimeEarned: { type: Number, default: 0 },
+  pendingBuild: {
+    slot: Number,
+    parts: {
+      cpu: String, gpu: String, ram: String, storage: String,
+      psu: String, motherboard: String, cooling: String, case: String
+    }
+  }
   inventory: [
     {
       partId: String,
