@@ -121,6 +121,12 @@ export async function handleInteraction(interaction) {
       const slot = parseInt(id.replace('pc_upgrade_', ''));
       return handleUpgradeMenu(interaction, player, slot);
     }
+    if (id === 'upgrade_component_select' && interaction.isStringSelectMenu()) {
+      return handleUpgradeComponentSelect(interaction, player);
+    }
+    if (id.startsWith('upgrade_confirm_') && interaction.isStringSelectMenu()) {
+      return handleUpgradePartSelect(interaction, player);
+    }
     if (id.startsWith('pc_dismantle_')) {
       const slot = parseInt(id.replace('pc_dismantle_', ''));
       return handleDismantleConfirm(interaction, player, slot);
@@ -896,5 +902,100 @@ async function handleEventsMenu(interaction, player) {
   return interaction.editReply({
     embeds: [embed],
     components: [backRow('menu_main')]
+  });
+}
+
+// ── Upgrade: pick which inventory part to swap in ─────────────────
+async function handleUpgradeComponentSelect(interaction, player) {
+  const val = interaction.values[0]; // upgrade_slot_<slot>_<component>
+  const match = val.match(/^upgrade_slot_(\d+)_(\w+)$/);
+  if (!match) return interaction.editReply({ embeds: [errEmbed('Invalid selection.')], components: [] });
+
+  const slot = parseInt(match[1]);
+  const component = match[2];
+
+  const owned = player.inventory.filter(i => {
+    const p = PARTS[i.partId];
+    return p && p.category === component;
+  });
+
+  if (owned.length === 0) {
+    return interaction.editReply({
+      embeds: [errEmbed(`You don't have any ${component.toUpperCase()} parts in your inventory to swap in.`)],
+      components: [backRow(`pc_slot_${slot}`)]
+    });
+  }
+
+  const options = owned.slice(0, 25).map((item, i) => {
+    const p = PARTS[item.partId];
+    return new StringSelectMenuOptionBuilder()
+      .setLabel(`${p.name} — Score: ${p.score}`)
+      .setValue(`swappart_${slot}_${component}_${i}`)
+      .setDescription(`${p.tier} | ${wearBar(item.wear || 0).substring(0, 50)}`)
+      .setEmoji(tierEmoji(p.tier));
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🔧 Upgrade ${component.toUpperCase()} — Slot ${slot}`)
+    .setDescription('Pick the part from your inventory to install.')
+    .setColor(0x3498db);
+
+  return interaction.editReply({
+    embeds: [embed],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(`upgrade_confirm_${slot}_${component}`)
+          .setPlaceholder('Pick a replacement...')
+          .addOptions(options)
+      ),
+      backRow(`pc_upgrade_${slot}`)
+    ]
+  });
+}
+
+// ── Upgrade: execute the swap ─────────────────────────────────────
+async function handleUpgradePartSelect(interaction, player) {
+  const val = interaction.values[0]; // swappart_<slot>_<component>_<invIdx>
+  const match = val.match(/^swappart_(\d+)_(\w+)_(\d+)$/);
+  if (!match) return interaction.editReply({ embeds: [errEmbed('Invalid selection.')], components: [] });
+
+  const slot = parseInt(match[1]);
+  const component = match[2];
+  const relativeIdx = parseInt(match[3]);
+
+  const pc = player.pcs.find(p => p.slot === slot);
+  if (!pc || !pc.built) return interaction.editReply({ embeds: [errEmbed('PC not found.')], components: [] });
+
+  // Find the nth matching inventory item
+  const owned = player.inventory.filter(i => {
+    const p = PARTS[i.partId];
+    return p && p.category === component;
+  });
+  const chosenItem = owned[relativeIdx];
+  if (!chosenItem) return interaction.editReply({ embeds: [errEmbed('Part not found in inventory.')], components: [] });
+
+  const invIdx = player.inventory.indexOf(chosenItem);
+  const newPart = PARTS[chosenItem.partId];
+
+  // Return old part to inventory if one is equipped
+  const oldPartId = pc.parts[component];
+  if (oldPartId) {
+    player.inventory.push({ partId: oldPartId, wear: pc.wear[component] || 0, acquired: new Date() });
+  }
+
+  // Install new part
+  pc.parts[component] = newPart.id;
+  pc.wear[component] = chosenItem.wear || 0;
+  player.inventory.splice(invIdx, 1);
+
+  await player.save();
+
+  return interaction.editReply({
+    embeds: [successEmbed('Part Upgraded!',
+      `**${component.toUpperCase()}** swapped to **${newPart.name}**!` +
+      (oldPartId ? `\nOld part returned to inventory.` : '')
+    )],
+    components: [backRow(`pc_slot_${slot}`)]
   });
 }
