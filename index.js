@@ -193,4 +193,7 @@ client.on('messageCreate', async message => {
   }
 });
 
+client.on('error', err => console.error('Discord client error:', err));
+process.on('unhandledRejection', err => console.error('Unhandled rejection:', err));
+
 client.login(process.env.DISCORD_TOKEN);
