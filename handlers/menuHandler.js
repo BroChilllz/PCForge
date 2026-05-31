@@ -301,18 +301,32 @@ export function renderInventory(player, filterCat = 'all', page = 0) {
       .setStyle(filterCat === cat ? ButtonStyle.Primary : ButtonStyle.Secondary)
   );
 
+  // After building pageItems embed fields, add item buttons before pagination
   const rows = [];
-  // Category filter — split into rows of 5
   for (let i = 0; i < catButtons.length; i += 5) {
     rows.push(new ActionRowBuilder().addComponents(...catButtons.slice(i, i + 5)));
   }
-
+  
+  // Item buttons — up to 5 per row, max 2 rows (10 items matches PAGE_SIZE)
+  const itemBtns = pageItems.map((item, idx) => {
+    const part = PARTS[item.partId];
+    const globalIdx = idx + page * PAGE_SIZE;
+    return new ButtonBuilder()
+      .setCustomId(`inv_item_${globalIdx}`)
+      .setLabel(`${globalIdx + 1}. ${part?.name?.substring(0, 20) || '?'}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji(tierEmoji(part?.tier));
+  });
+  for (let i = 0; i < itemBtns.length; i += 5) {
+    rows.push(new ActionRowBuilder().addComponents(...itemBtns.slice(i, i + 5)));
+  }
+  
   // Pagination + back
   const navBtns = [btn('menu_main', '← Back', ButtonStyle.Secondary)];
   if (page > 0) navBtns.unshift(btn(`inv_filter_${filterCat}_${page - 1}`, '◀ Prev', ButtonStyle.Primary));
   if (page < pageCount - 1) navBtns.push(btn(`inv_filter_${filterCat}_${page + 1}`, '▶ Next', ButtonStyle.Primary));
   rows.push(new ActionRowBuilder().addComponents(...navBtns));
-
+  
   return { embeds: [embed], components: rows.slice(0, 5) };
 }
 
