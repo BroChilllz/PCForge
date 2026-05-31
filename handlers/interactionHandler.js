@@ -110,7 +110,7 @@ export async function handleInteraction(interaction) {
       const slot = parseInt(id.replace('pc_task_', ''));
       const pc = player.pcs.find(p => p.slot === slot);
       if (!pc || !pc.built) return interaction.editReply({ embeds: [errEmbed('PC not found.')], components: [] });
-      return interaction.editReply(renderTasksMenu(player, pc));
+      return handleTaskAssignMenu(interaction, player, pc);
     }
     if (id.startsWith('pc_upgrade_')) {
       const slot = parseInt(id.replace('pc_upgrade_', ''));
