@@ -368,7 +368,6 @@ function showBuildStep(interaction, player, slot, currentSlot, selected) {
   });
 
   if (owned.length === 0) {
-    // Skip optional slots
     const optionalSlots = ['motherboard', 'cooling', 'case'];
     if (optionalSlots.includes(currentSlot)) {
       const nextSlot = getNextBuildSlot(currentSlot, selected);
@@ -381,25 +380,13 @@ function showBuildStep(interaction, player, slot, currentSlot, selected) {
     });
   }
 
-  const pcParts = pc.parts.toObject ? pc.parts.toObject() : pc.parts;
-  
-  const options = available.slice(0, 25).map(t => {
-    const cpuScore = PARTS[pcParts.cpu]?.score || 0;
-    const gpuScore = PARTS[pcParts.gpu]?.score || 0;
-    const ramScore = PARTS[pcParts.ram]?.score || 0;
-  
-    const scalingBase = t.primaryStat === 'cpu' ? cpuScore
-      : t.primaryStat === 'gpu' ? gpuScore
-      : t.primaryStat === 'ram' ? ramScore
-      : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
-  
-    const estimatedPerHour = t.baseEarningsPerHour * (1 + (scalingBase / 10) * t.earningsScalingFactor);
-  
+  const options = owned.slice(0, 25).map((item, i) => {
+    const p = PARTS[item.partId];
     return new StringSelectMenuOptionBuilder()
-      .setLabel(`${t.name} — ~${formatMoney(estimatedPerHour)}/hr`)
-      .setValue(`assign_${pc.slot}_${t.id}`)
-      .setDescription(`Risk: ${'⚠️'.repeat(t.riskLevel) || 'None'} | Lvl ${t.levelRequired}+`)
-      .setEmoji(t.emoji.replace(/\uFE0F/g, ''));
+      .setLabel(`${p.name} — Score: ${p.score}`)
+      .setValue(`${i}`)
+      .setDescription(`${p.tier} | ${wearBar(item.wear || 0).substring(0, 50)}`)
+      .setEmoji(tierEmoji(p.tier));
   });
 
   const embed = new EmbedBuilder()
