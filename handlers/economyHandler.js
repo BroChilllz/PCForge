@@ -23,6 +23,12 @@ export function calculateEarnings(pc, player, marketState) {
   const gpuPart = PARTS[pc.parts.gpu];
   const ramPart = PARTS[pc.parts.ram];
   const psuPart = PARTS[pc.parts.psu];
+  const storagePart = PARTS[pc.parts.storage];
+  const storageScore = storagePart?.score || 0;
+  const storageMultiplier = 1 + (storageScore * 0.02); // 2% per score point
+  const moboPart = PARTS[pc.parts.motherboard];
+  const moboScore = moboPart?.score || 0;
+  const moboMultiplier = 1 + (moboScore * 0.01);
 
   // Wear penalty
   let wearMultiplier = 1.0;
@@ -33,7 +39,14 @@ export function calculateEarnings(pc, player, marketState) {
 
   // PSU sufficiency
   const totalTdp = (cpuPart?.wattage || 0) + (gpuPart?.wattage || 0);
-  const psuMultiplier = psuPart && psuPart.wattage >= totalTdp ? 1.0 : 0.6;
+  let psuMultiplier = 1.0;
+  if (!psuPart) {
+    psuMultiplier = 0.5;
+  } else if (psuPart.wattage < totalTdp) {
+    psuMultiplier = 0.5; // underpowered
+  } else if (psuPart.wattage >= totalTdp * 1.5) {
+    psuMultiplier = 1.1; // headroom bonus — stable power delivery
+  }
 
   // Performance scores
   const cpuScore = cpuPart?.score || 0;
@@ -88,12 +101,24 @@ export function calculateEarnings(pc, player, marketState) {
     * marketMultiplier
     * boostMultiplier
     * prestigeMultiplier
-    * hoursSinceCollect;
+    * hoursSinceCollect
+    * storageMultiplier
+    * moboMultiplier;
 
   return Math.max(0, Math.round(earnings * 100) / 100);
 }
 
 export function applyWear(pc, hoursElapsed) {
+  const coolingPart = PARTS[pc.parts.cooling];
+  const coolingScore = coolingPart?.score || 0;
+  // Better cooling = slower wear accumulation
+  const casePart = PARTS[pc.parts.case];
+  const caseScore = casePart?.score || 0;
+  // Better airflow = amplifies cooling effectiveness
+  const thermalBonus = 1 + (caseScore * 0.005); // small multiplier stacked on cooling
+  // Apply to wearReduction in applyWear — case improves cooling efficiency
+  const effectiveCoolingScore = coolingScore * thermalBonus;
+  const wearReduction = 1 - Math.min(0.8, effectiveCoolingScore * 0.03); // up to 80% less wear
   if (!pc.built || !pc.task || pc.task === 'idle') return pc.wear;
   const task = tasks[pc.task];
   if (!task || task.wearRateMultiplier === 0) return pc.wear;
@@ -108,7 +133,7 @@ export function applyWear(pc, hoursElapsed) {
     if (!part) continue;
     const baseRate = WEAR_RATES[part.tier] ?? 0.35;
     const wearIncrease = baseRate * task.wearRateMultiplier * hoursElapsed;
-    newWear[comp] = Math.min(100, (newWear[comp] || 0) + wearIncrease);
+    newWear[comp] = Math.min(100, ((newWear[comp] || 0) + wearIncrease)*wearReduction);
   }
 
   return newWear;
