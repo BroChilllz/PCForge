@@ -51,7 +51,9 @@ const PlayerSchema = new mongoose.Schema({
         ram: { type: Number, default: 0 },
         storage: { type: Number, default: 0 },
         psu: { type: Number, default: 0 },
-        cooling: { type: Number, default: 0 }
+        motherboard: { type: Number, default: 0 },
+        cooling: { type: Number, default: 0 },
+        case: { type: Number, default: 0 }
       },
       online: { type: Boolean, default: true },
       offlineUntil: Date,
