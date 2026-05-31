@@ -521,7 +521,7 @@ async function executeBuild(interaction, player, slot, selectedParts) {
   pc.task = 'idle';
   pc.lastCollected = new Date();
   pc.online = true;
-  pc.wear = { cpu: 0, gpu: 0, ram: 0, storage: 0, psu: 0, cooling: 0 };
+  pc.wear = { cpu: 0, gpu: 0, ram: 0, storage: 0, psu: 0, motherboard: 0, cooling: 0, case: 0 };
 
   await player.save();
   
