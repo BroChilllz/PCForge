@@ -471,6 +471,8 @@ async function showBuildConfirm(interaction, player, slot, selectedParts) {
 }
 
 async function executeBuild(interaction, player, slot, selectedParts) {
+  console.log('executeBuild selectedParts:', JSON.stringify(selectedParts));
+  console.log('inventory:', JSON.stringify(player.inventory.map(i => i.partId)));
   const pc = player.pcs.find(p => p.slot === slot);
   if (!pc) return interaction.editReply({ embeds: [errEmbed('PC slot not found.')], components: [] });
   if (pc.built) return interaction.editReply({ embeds: [errEmbed('Slot already has a PC. Dismantle it first.')], components: [backRow(`pc_slot_${slot}`)] });
