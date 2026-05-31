@@ -1,38 +1,85 @@
 // game/parts.js — Full Parts Catalog
 
 export const parts = {
+  // ==================== STARTER / FREE PARTS ====================
+  // Free parts to get new players earning immediately.
+  // Combined score: (1.5×0.35) + (2.5×0.45) + (1.0×0.20) = 1.85 — unlocks Altcoin + Ethereum mining.
+
+  starter_cpu: {
+    id: 'starter_cpu', name: 'PCForge Starter CPU', category: 'cpu', tier: 'budget',
+    price: 0, sellPrice: 0, score: 1.5, wattage: 35,
+    flavor: "Free. Gets you started. Don't overthink it.",
+    levelRequired: 0,
+    specs: { cores: 2, threads: 2, socket: 'Universal', clockspeed: '2.8GHz' }
+  },
+  starter_gpu: {
+    id: 'starter_gpu', name: 'PCForge Starter GPU', category: 'gpu', tier: 'budget',
+    price: 0, sellPrice: 0, score: 2.5, wattage: 60,
+    flavor: "Free GPU. Enough to mine Ethereum. Barely.",
+    levelRequired: 0,
+    specs: { vram: '4GB GDDR5', tdp: '60W', raytracing: false }
+  },
+  starter_ram: {
+    id: 'starter_ram', name: 'PCForge Starter RAM', category: 'ram', tier: 'budget',
+    price: 0, sellPrice: 0, score: 1.0, wattage: 3,
+    flavor: "Free RAM. It's RAM. It works.",
+    levelRequired: 0,
+    specs: { capacity: '8GB', speed: '2666MHz', type: 'DDR4' }
+  },
+  starter_storage: {
+    id: 'starter_storage', name: 'PCForge Starter SSD', category: 'storage', tier: 'budget',
+    price: 0, sellPrice: 0, score: 0.3, wattage: 2,
+    flavor: "Free storage. 240GB. Don't install Steam.",
+    levelRequired: 0,
+    specs: { capacity: '240GB', speed: '500MB/s', type: 'SATA' }
+  },
+  starter_psu: {
+    id: 'starter_psu', name: 'PCForge Starter PSU', category: 'psu', tier: 'budget',
+    price: 0, sellPrice: 0, score: 0.5, wattage: 400,
+    flavor: "Free PSU. 400W. Enough for the starter set.",
+    levelRequired: 0,
+    specs: { wattage: 400, efficiency: '80+', modular: false }
+  },
+  starter_motherboard: {
+    id: 'starter_motherboard', name: 'PCForge Starter Motherboard', category: 'motherboard', tier: 'budget',
+    price: 0, sellPrice: 0, score: 0.5, wattage: 10,
+    flavor: "Free board. Universal socket. No questions asked.",
+    levelRequired: 0,
+    specs: { socket: 'Universal', formFactor: 'mATX', pcie: 'PCIe 3.0' }
+  },
+
   // ==================== CPUs ====================
   celeron_g6900: {
     id: 'celeron_g6900', name: 'Intel Celeron G6900', category: 'cpu', tier: 'budget',
-    price: 42, sellPrice: 25, score: 1.0, wattage: 46,
+    price: 42, sellPrice: 25, score: 2.0, wattage: 46,
     flavor: 'Barely boots. Technically a CPU.',
     levelRequired: 0,
     specs: { cores: 2, threads: 2, socket: 'LGA1700', clockspeed: '3.4GHz' }
   },
   athlon_3000g: {
     id: 'athlon_3000g', name: 'AMD Athlon 3000G', category: 'cpu', tier: 'budget',
-    price: 55, sellPrice: 33, score: 1.3, wattage: 35,
+    price: 55, sellPrice: 33, score: 2.5, wattage: 35,
     flavor: 'At least it tries. Bless its heart.',
     levelRequired: 0,
     specs: { cores: 2, threads: 4, socket: 'AM4', clockspeed: '3.5GHz' }
   },
   i3_12100: {
     id: 'i3_12100', name: 'Intel Core i3-12100', category: 'cpu', tier: 'budget',
-    price: 99, sellPrice: 59, score: 2.4, wattage: 60,
+    price: 99, sellPrice: 59, score: 3.5, wattage: 60,
     flavor: 'Surprisingly decent. You\'ll be pleasantly shocked.',
     levelRequired: 0,
     specs: { cores: 4, threads: 8, socket: 'LGA1700', clockspeed: '3.3GHz–4.3GHz' }
   },
   ryzen5_5500: {
     id: 'ryzen5_5500', name: 'AMD Ryzen 5 5500', category: 'cpu', tier: 'budget',
-    price: 89, sellPrice: 53, score: 2.8, wattage: 65,
+    price: 89, sellPrice: 53, score: 4.0, wattage: 65,
     flavor: 'AM4 budget king. Reigns supreme over the $90 pile.',
     levelRequired: 0,
     specs: { cores: 6, threads: 12, socket: 'AM4', clockspeed: '3.6GHz–4.2GHz' }
   },
   i5_12400: {
     id: 'i5_12400', name: 'Intel Core i5-12400', category: 'cpu', tier: 'midrange',
-    price: 179, sellPrice: 107, score: 4.2, wattage: 65,
+    price: 179, sellPrice: 107, score: 4.25, wattage: 65,
     flavor: 'The reliable workhorse. Judged by its results, not its name.',
     levelRequired: 0,
     specs: { cores: 6, threads: 12, socket: 'LGA1700', clockspeed: '2.5GHz–4.4GHz' }
@@ -161,28 +208,28 @@ export const parts = {
   // ==================== GPUs ====================
   gtx_1650: {
     id: 'gtx_1650', name: 'Nvidia GeForce GTX 1650', category: 'gpu', tier: 'budget',
-    price: 149, sellPrice: 89, score: 1.5, wattage: 75,
+    price: 149, sellPrice: 89, score: 3.0, wattage: 75,
     flavor: 'Struggling in 2025. Still proud of itself.',
     levelRequired: 0,
     specs: { vram: '4GB GDDR6', tdp: '75W', raytracing: false }
   },
   rx_6600: {
     id: 'rx_6600', name: 'AMD Radeon RX 6600', category: 'gpu', tier: 'budget',
-    price: 169, sellPrice: 101, score: 2.2, wattage: 132,
+    price: 169, sellPrice: 101, score: 3.8, wattage: 132,
     flavor: 'Budget AMD entry. It won\'t embarrass you at 1080p.',
     levelRequired: 0,
     specs: { vram: '8GB GDDR6', tdp: '132W', raytracing: true }
   },
   rtx_3060: {
     id: 'rtx_3060', name: 'Nvidia GeForce RTX 3060', category: 'gpu', tier: 'midrange',
-    price: 249, sellPrice: 149, score: 3.8, wattage: 170,
+    price: 249, sellPrice: 149, score: 5.0, wattage: 170,
     flavor: 'DLSS 2 workhorse. Still gets the job done.',
     levelRequired: 0,
     specs: { vram: '12GB GDDR6', tdp: '170W', raytracing: true }
   },
   rx_7600: {
     id: 'rx_7600', name: 'AMD Radeon RX 7600', category: 'gpu', tier: 'midrange',
-    price: 269, sellPrice: 161, score: 4.2, wattage: 165,
+    price: 269, sellPrice: 161, score: 5.5, wattage: 165,
     flavor: 'FSR champ. AMD value proposition incarnate.',
     levelRequired: 0,
     specs: { vram: '8GB GDDR6', tdp: '165W', raytracing: true }
@@ -319,14 +366,14 @@ export const parts = {
   // ==================== RAM ====================
   ddr4_8gb: {
     id: 'ddr4_8gb', name: '8GB DDR4-3200', category: 'ram', tier: 'budget',
-    price: 22, sellPrice: 13, score: 0.8, wattage: 5,
+    price: 22, sellPrice: 13, score: 1.5, wattage: 5,
     flavor: 'Barely enough. Chrome will consume it entirely.',
     levelRequired: 0,
     specs: { capacity: '8GB', speed: '3200MHz', type: 'DDR4' }
   },
   ddr4_16gb: {
     id: 'ddr4_16gb', name: '16GB DDR4-3600', category: 'ram', tier: 'budget',
-    price: 38, sellPrice: 23, score: 1.2, wattage: 7,
+    price: 38, sellPrice: 23, score: 1.75, wattage: 7,
     flavor: 'Minimum viable RAM. You\'ll make it work.',
     levelRequired: 0,
     specs: { capacity: '16GB', speed: '3600MHz', type: 'DDR4' }
