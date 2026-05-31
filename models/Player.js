@@ -18,7 +18,7 @@ const PlayerSchema = new mongoose.Schema({
       cpu: String, gpu: String, ram: String, storage: String,
       psu: String, motherboard: String, cooling: String, case: String
     }
-  }
+  },
   inventory: [
     {
       partId: String,
