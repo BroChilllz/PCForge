@@ -246,9 +246,6 @@ async function handleBuyPart(interaction, player, partId) {
   if (player.wallet < part.price) {
     return interaction.editReply({ embeds: [errEmbed(`Not enough money. You need ${formatMoney(part.price)} but have ${formatMoney(player.wallet)}.`)], components: [backRow(`shop_cat_${part.category}_0`)] });
   }
-  if (part.levelRequired > player.level) {
-    return interaction.editReply({ embeds: [errEmbed(`Requires Level ${part.levelRequired}.`)], components: [backRow(`shop_cat_${part.category}_0`)] });
-  }
   player.wallet -= part.price;
   player.inventory.push({ partId: part.id, wear: 0, acquired: new Date() });
   const xpGained = Math.floor(Math.pow(part.price,XP_REWARDS.buyPart));
