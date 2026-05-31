@@ -270,7 +270,7 @@ export function renderPcDetail(player, pc, marketState) {
     `**Analysis:** ${bottleneck[0]}`
   );
 
-  if (partFields.length) embed.addFields(partFields.slice(0, 6));
+  if (partFields.length) embed.addFields(partFields);
 
   const actionRow = new ActionRowBuilder().addComponents(
     btn(`pc_assign_task_${pc.slot}`, '⚙️ Assign Task', ButtonStyle.Primary),
