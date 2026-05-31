@@ -372,11 +372,17 @@ function showBuildStep(interaction, player, slot, currentSlot, selected) {
     });
   }
 
+  const pcParts = pc.parts.toObject ? pc.parts.toObject() : pc.parts;
+  
   const options = available.slice(0, 25).map(t => {
-    const scalingBase = t.primaryStat === 'cpu' ? (PARTS[pc.parts.cpu]?.score || 0)
-      : t.primaryStat === 'gpu' ? (PARTS[pc.parts.gpu]?.score || 0)
-      : t.primaryStat === 'ram' ? (PARTS[pc.parts.ram]?.score || 0)
-      : ((PARTS[pc.parts.cpu]?.score || 0) * 0.35) + ((PARTS[pc.parts.gpu]?.score || 0) * 0.45) + ((PARTS[pc.parts.ram]?.score || 0) * 0.20);
+    const cpuScore = PARTS[pcParts.cpu]?.score || 0;
+    const gpuScore = PARTS[pcParts.gpu]?.score || 0;
+    const ramScore = PARTS[pcParts.ram]?.score || 0;
+  
+    const scalingBase = t.primaryStat === 'cpu' ? cpuScore
+      : t.primaryStat === 'gpu' ? gpuScore
+      : t.primaryStat === 'ram' ? ramScore
+      : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
   
     const estimatedPerHour = t.baseEarningsPerHour * (1 + (scalingBase / 10) * t.earningsScalingFactor);
   
