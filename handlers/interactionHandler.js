@@ -469,22 +469,6 @@ async function showBuildConfirm(interaction, player, slot, selectedParts) {
   });
 }
 
-async function handleBuildConfirm(interaction, player, customId) {
-  // build_confirm_<slot>_<k:v|k:v|...>
-  const rest = customId.replace('build_confirm_', '');
-  const underscoreIdx = rest.indexOf('_');
-  const slot = parseInt(rest.substring(0, underscoreIdx));
-  const encoded = rest.substring(underscoreIdx + 1);
-
-  const selectedParts = {};
-  for (const pair of encoded.split('|')) {
-    const [k, v] = pair.split(':');
-    if (k && v) selectedParts[k] = v;
-  }
-
-  return executeBuild(interaction, player, slot, selectedParts);
-}
-
 async function executeBuild(interaction, player, slot, selectedParts) {
   const pc = player.pcs.find(p => p.slot === slot);
   if (!pc) return interaction.editReply({ embeds: [errEmbed('PC slot not found.')], components: [] });
