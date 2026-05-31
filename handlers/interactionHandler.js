@@ -251,7 +251,7 @@ async function handleBuyPart(interaction, player, partId) {
   }
   player.wallet -= part.price;
   player.inventory.push({ partId: part.id, wear: 0, acquired: new Date() });
-  const xpGained = Math.floor(part.price^XP_REWARDS.buyPart);
+  const xpGained = Math.floor(part.price**XP_REWARDS.buyPart);
   if (xpGained <= 0) {
     await player.save();
     const embed = successEmbed('Purchase Successful',
@@ -291,7 +291,7 @@ async function handleCollect(interaction, player, slot, marketState) {
   pc.totalEarned = (pc.totalEarned || 0) + earnings;
   pc.lastCollected = new Date();
 
-  const xpGained = Math.floor(earnings^XP_REWARDS.collect);
+  const xpGained = Math.floor(earnings**XP_REWARDS.collect);
   const { leveled, newLevel } = xpGained > 0 ? addXp(player, xpGained) : { leveled: false, newLevel: player.level };
   await player.save();
 
