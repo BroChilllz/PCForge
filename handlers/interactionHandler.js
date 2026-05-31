@@ -143,13 +143,13 @@ export async function handleInteraction(interaction) {
     }
     if (id.startsWith('build_do_')) {
       const slot = parseInt(id.replace('build_do_', ''));
-      console.log('pendingBuild:', JSON.stringify(player.pendingBuild));
-      if (!player.pendingBuild || player.pendingBuild.slot !== slot) {
+      const freshPlayer = await Player.findOne({ userId: interaction.user.id });
+      if (!freshPlayer.pendingBuild || freshPlayer.pendingBuild.slot !== slot) {
         return interaction.editReply({ embeds: [errEmbed('Build session expired. Please start over.')], components: [backRow(`pc_slot_${slot}`)] });
       }
-      const selectedParts = player.pendingBuild.parts;
-      player.pendingBuild = null;
-      return executeBuild(interaction, player, slot, selectedParts);
+      const selectedParts = freshPlayer.pendingBuild.parts;
+      freshPlayer.pendingBuild = null;
+      return executeBuild(interaction, freshPlayer, slot, selectedParts);
     }
 
     // ── Inventory ──────────────────────────────────────────────────
