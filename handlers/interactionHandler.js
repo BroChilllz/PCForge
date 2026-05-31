@@ -107,8 +107,8 @@ export async function handleInteraction(interaction) {
       const slot = parseInt(id.replace('pc_collect_', ''));
       return handleCollect(interaction, player, slot, marketState);
     }
-    if (id.startsWith('pc_task_')) {
-      const slot = parseInt(id.replace('pc_task_', ''));
+    if (id.startsWith('pc_assign_task_')) {
+      const slot = parseInt(id.replace('pc_assign_task_', ''));
       const pc = player.pcs.find(p => p.slot === slot);
       if (!pc || !pc.built) return interaction.editReply({ embeds: [errEmbed('PC not found.')], components: [] });
       return handleTaskAssignMenu(interaction, player, pc);
