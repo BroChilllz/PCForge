@@ -147,7 +147,7 @@ export async function handleInteraction(interaction) {
       if (!freshPlayer.pendingBuild || freshPlayer.pendingBuild.slot !== slot) {
         return interaction.editReply({ embeds: [errEmbed('Build session expired. Please start over.')], components: [backRow(`pc_slot_${slot}`)] });
       }
-      const selectedParts = freshPlayer.pendingBuild.parts;
+      const selectedParts = freshPlayer.pendingBuild.parts.toObject();
       freshPlayer.pendingBuild = null;
       return executeBuild(interaction, freshPlayer, slot, selectedParts);
     }
