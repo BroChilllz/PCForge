@@ -78,7 +78,7 @@ export const STATUS_COLORS = {
 
 export const COOLDOWNS = {
   scavenge: 60 * 60 * 1000,        // 1 hour
-  interaction: 5 * 1000,            // 5 second spam guard
+  interaction: 1 * 1000,            // 1 second spam guard
   marketRotation: 2 * 60 * 60 * 1000 // 2 hours
 };
 
