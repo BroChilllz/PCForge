@@ -417,7 +417,6 @@ export function renderMarket(player, marketState) {
   const runningPcs = player.pcs.filter(pc => pc.built && pc.task && pc.task !== 'idle' && pc.online);
   if (runningPcs.length > 0) {
     const earningLines = runningPcs.map(pc => {
-      const { calculateEarnings } = require('./economyHandler.js');
       const est = calculateEarnings(pc, player, marketState);
       const task = TASKS[pc.task];
       return `${statusEmoji(pc)} **${pc.name}** — ${task?.emoji || ''} ${task?.name || pc.task}: +${formatMoney(est)} pending`;
