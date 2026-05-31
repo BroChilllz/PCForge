@@ -291,7 +291,7 @@ async function handleCollect(interaction, player, slot, marketState) {
   pc.totalEarned = (pc.totalEarned || 0) + earnings;
   pc.lastCollected = new Date();
 
-  const xpGained = Math.floor(Math.pow(earnings,XP_REWARDS.collect));
+  const xpGained = Math.floor(Math.pow(earnings,XP_REWARDS.collectEarnings));
   const { leveled, newLevel } = xpGained > 0 ? addXp(player, xpGained) : { leveled: false, newLevel: player.level };
   await player.save();
 
