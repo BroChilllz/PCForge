@@ -1,5 +1,5 @@
 // commands/play.js — Opens the main menu
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, InteractionContextType } from 'discord.js';
 import Player from '../models/Player.js';
 import { renderMainMenu } from '../handlers/menuHandler.js';
 import { getMarketState } from '../index.js';
@@ -7,7 +7,12 @@ import { getMarketState } from '../index.js';
 export const playCommand = {
   data: new SlashCommandBuilder()
     .setName('play')
-    .setDescription('Open the PCForge main menu'),
+    .setDescription('Open the PCForge main menu')
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel
+    ),
 
   async execute(interaction) {
     await interaction.deferReply();
