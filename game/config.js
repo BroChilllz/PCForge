@@ -83,5 +83,5 @@ export const COOLDOWNS = {
 };
 
 export const PC_SLOTS = 4;
-export const MAX_COLLECT_HOURS = 24;
+export const MAX_COLLECT_HOURS = 2;
 export const STARTING_WALLET = 500;
