@@ -230,18 +230,36 @@ export function renderPcDetail(player, pc, marketState) {
   const cpuScore = PARTS[pc.parts.cpu]?.score || 0;
   const gpuScore = PARTS[pc.parts.gpu]?.score || 0;
   const ramScore = PARTS[pc.parts.ram]?.score || 0;
+  const storageScore = PARTS[pc.parts.storage]?.score || 0;
+  const moboScore = PARTS[pc.parts.motherboard]?.score || 0;
+  const coolingScore = PARTS[pc.parts.cooling]?.score || 0;
+  const caseScore = PARTS[pc.parts.case]?.score || 0;
+  
+  const psuPart = PARTS[pc.parts.psu];
+  const totalTdp = (PARTS[pc.parts.cpu]?.wattage || 0) + (PARTS[pc.parts.gpu]?.wattage || 0);
+  let psuMultiplier = 1.0;
+  if (!psuPart) psuMultiplier = 0.5;
+  else if (psuPart.wattage < totalTdp) psuMultiplier = 0.5;
+  else if (psuPart.wattage >= totalTdp * 1.5) psuMultiplier = 1.1;
+  
+  const storageMultiplier = 1 + (storageScore * 0.02);
+  const moboMultiplier = 1 + (moboScore * 0.01);
+  const thermalBonus = 1 + (caseScore * 0.005);
+  const effectiveCoolingScore = coolingScore * thermalBonus;
   
   let earningsPerHour = 0;
   if (task) {
     const scalingBase = task.primaryStat === 'cpu' ? cpuScore
       : task.primaryStat === 'gpu' ? gpuScore
       : task.primaryStat === 'ram' ? ramScore
+      : task.primaryStat === 'storage' ? storageScore
       : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
-    earningsPerHour = task.baseEarningsPerHour * (1 + (scalingBase / 10) * task.earningsScalingFactor);
-    console.log('task:', task?.id);
-    console.log('gpuScore:', gpuScore);
-    console.log('scalingBase:', scalingBase);
-    console.log('earningsPerHour:', earningsPerHour);
+    const rawPerHour = task.baseEarningsPerHour
+      * (1 + (scalingBase / 10) * task.earningsScalingFactor)
+      * psuMultiplier
+      * storageMultiplier
+      * moboMultiplier;
+    earningsPerHour = Math.pow(Math.max(0, rawPerHour), 1.15);
   }
   
   embed.setDescription(
