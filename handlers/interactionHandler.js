@@ -251,12 +251,21 @@ async function handleBuyPart(interaction, player, partId) {
   }
   player.wallet -= part.price;
   player.inventory.push({ partId: part.id, wear: 0, acquired: new Date() });
-  const { leveled, newLevel } = addXp(player, XP_REWARDS.buyPart);
+  const xpGained = Math.floor(part.price / (10/XP_REWARDS.buyPart));
+  if (xpGained <= 0) {
+    await player.save();
+    const embed = successEmbed('Purchase Successful',
+      `You bought **${part.name}** for ${formatMoney(part.price)}!\n` +
+      `New wallet: ${formatMoney(player.wallet)}`
+    );
+    return interaction.editReply({ embeds: [embed], components: [backRow(`shop_cat_${part.category}_0`)] });
+  }
+  const { leveled, newLevel } = addXp(player, xpGained);
   await player.save();
 
   const embed = successEmbed('Purchase Successful',
     `You bought **${part.name}** for ${formatMoney(part.price)}!\n` +
-    `+${XP_REWARDS.buyPart} XP earned${leveled ? ` 🎉 Level up! Now Level **${newLevel}**!` : ''}\n` +
+    `+${xpGained} XP earned${leveled ? ` 🎉 Level up! Now Level **${newLevel}**!` : ''}\n` +
     `New wallet: ${formatMoney(player.wallet)}`
   );
   return interaction.editReply({ embeds: [embed], components: [backRow(`shop_cat_${part.category}_0`)] });
@@ -282,12 +291,13 @@ async function handleCollect(interaction, player, slot, marketState) {
   pc.totalEarned = (pc.totalEarned || 0) + earnings;
   pc.lastCollected = new Date();
 
-  const { leveled, newLevel } = addXp(player, XP_REWARDS.collectEarnings);
+  const xpGained = Math.floor(earnings / (10/XP_REWARDS.collectEarnings));
+  const { leveled, newLevel } = xpGained > 0 ? addXp(player, xpGained) : { leveled: false, newLevel: player.level };
   await player.save();
 
   const embed = successEmbed('Earnings Collected',
     `💰 **+${formatMoney(earnings)}** collected from **${pc.name || `PC Slot ${slot}`}**!\n` +
-    `+${XP_REWARDS.collectEarnings} XP${leveled ? ` 🎉 Level **${newLevel}**!` : ''}\n` +
+    (xpGained > 0 ? `+${xpGained} XP${leveled ? ` 🎉 Level **${newLevel}**!` : ''}\n` : '') +
     `Wallet: ${formatMoney(player.wallet)}`
   );
   return interaction.editReply({ embeds: [embed], components: [backRow(`pc_slot_${slot}`)] });
@@ -513,12 +523,10 @@ async function executeBuild(interaction, player, slot, selectedParts) {
   pc.online = true;
   pc.wear = { cpu: 0, gpu: 0, ram: 0, storage: 0, psu: 0, cooling: 0 };
 
-  const { leveled, newLevel } = addXp(player, XP_REWARDS.buildPc);
   await player.save();
-
+  
   const embed = successEmbed('PC Built!',
     `🎉 **${pc.name || `PC Slot ${slot}`}** is now built and running!\n` +
-    `+${XP_REWARDS.buildPc} XP${leveled ? ` 🎉 Level **${newLevel}**!` : ''}\n` +
     `Assign a task from the Tasks menu to start earning.`
   );
   return interaction.editReply({ embeds: [embed], components: [backRow(`pc_slot_${slot}`)] });
