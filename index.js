@@ -11,6 +11,9 @@ import { rollEvent } from './game/events.js';
 import { applyWear, calculateEarnings, addXp } from './handlers/economyHandler.js';
 import { XP_REWARDS } from './game/config.js';
 
+// ── HTTP server for Render ──────────────────────────────
+http.createServer((req, res) => res.end('PCForge Online')).listen(process.env.PORT || 3000);
+
 // ── Keep-alive for Render ──────────────────────────────
 setInterval(() => {
   https.get(process.env.RENDER_URL, (res) => {
