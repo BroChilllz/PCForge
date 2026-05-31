@@ -181,14 +181,6 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// ── Discord event: !play prefix command ───────────────────────────
-client.on('messageCreate', async message => {
-  if (message.author.bot) return;
-  if (message.content.trim().toLowerCase() === '!play') {
-    await playCommand.executePrefix(message);
-  }
-});
-
 client.on('error', err => console.error('Discord client error:', err));
 process.on('unhandledRejection', err => console.error('Unhandled rejection:', err));
 
