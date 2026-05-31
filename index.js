@@ -2,6 +2,7 @@
 import { Client, GatewayIntentBits, REST, Routes, Collection } from 'discord.js';
 import mongoose from 'mongoose';
 import http from 'http';
+import https from 'https';
 import { playCommand } from './commands/play.js';
 import { handleInteraction } from './handlers/interactionHandler.js';
 import Player from './models/Player.js';
@@ -10,8 +11,14 @@ import { rollEvent } from './game/events.js';
 import { applyWear, calculateEarnings, addXp } from './handlers/economyHandler.js';
 import { XP_REWARDS } from './game/config.js';
 
-// ── Keep-alive HTTP server for Render ──────────────────────────────
-http.createServer((req, res) => res.end('PCForge Online')).listen(process.env.PORT || 3000);
+// ── Keep-alive for Render ──────────────────────────────
+setInterval(() => {
+  https.get(process.env.RENDER_URL, (res) => {
+    console.log(`Keep-alive ping: ${res.statusCode}`);
+  }).on('error', (err) => {
+    console.error('Keep-alive error:', err.message);
+  });
+}, 60 * 1000);
 
 // ── Discord client ─────────────────────────────────────────────────
 const client = new Client({
