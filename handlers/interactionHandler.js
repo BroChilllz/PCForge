@@ -64,9 +64,11 @@ export async function handleInteraction(interaction) {
 
     // ── Shop ───────────────────────────────────────────────────────
     if (id === 'shop_cat_back') return interaction.editReply(renderShopCategories(player));
-    if (id.startsWith('shop_cat_')) {
-      const cat = id.replace('shop_cat_', '');
-      return interaction.editReply(renderShopCategory(player, cat, 0));
+    if (id.startsWith('shop_cat_') && !id.startsWith('shop_cat_back')) {
+      const parts = id.replace('shop_cat_', '').split('_');
+      const page = isNaN(parts[parts.length - 1]) ? 0 : parseInt(parts.pop());
+      const cat = parts.join('_');
+      return interaction.editReply(renderShopCategory(player, cat, page));
     }
     if (id.startsWith('shop_page_')) {
       const parts2 = id.split('_'); // shop_page_<cat>_<page>
