@@ -77,6 +77,19 @@ export function renderShopCategories(player) {
 
 export function renderShopCategory(player, category, page = 0) {
   const allParts = getPartsByCategory(category).filter(p => p.levelRequired <= player.level);
+  
+  if (allParts.length === 0) {
+    const embed = new EmbedBuilder()
+      .setTitle(`🛒 Shop — ${cap(category)}`)
+      .setDescription('No parts available in this category yet, or your level is too low.')
+      .setColor(0x2ecc71)
+      .setFooter(footer(player));
+    return {
+      embeds: [embed],
+      components: [new ActionRowBuilder().addComponents(btn('shop_cat_back', '← Categories', ButtonStyle.Secondary))]
+    };
+  }
+  const allParts = getPartsByCategory(category).filter(p => p.levelRequired <= player.level);
   const PAGE_SIZE = 25;
   const pageCount = Math.ceil(allParts.length / PAGE_SIZE);
   const pageParts = allParts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
