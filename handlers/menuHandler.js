@@ -76,7 +76,7 @@ export function renderShopCategories(player) {
 }
 
 export function renderShopCategory(player, category, page = 0) {
-  const allParts = getPartsByCategory(category).filter(p => p.levelRequired <= player.level);
+  const allParts = getPartsByCategory(category);
   
   if (allParts.length === 0) {
     const embed = new EmbedBuilder()
