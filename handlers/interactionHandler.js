@@ -437,39 +437,26 @@ function parseSelectedFromEmbed(embed) {
   return selected;
 }
 
-function showBuildConfirm(interaction, player, slot, selectedParts) {
+async function showBuildConfirm(interaction, player, slot, selectedParts) {
   const lines = Object.entries(selectedParts).map(([k, v]) => {
     const p = PARTS[v];
     return `${tierEmoji(p?.tier)} **${k.toUpperCase()}:** ${p?.name || 'Unknown'}`;
   });
+
+  // Save selection to DB instead of encoding in customId
+  player.pendingBuild = { slot, parts: selectedParts };
+  await player.save();
 
   const embed = new EmbedBuilder()
     .setTitle(`🔨 Confirm Build — Slot ${slot}`)
     .setDescription('Review your build:\n\n' + lines.join('\n'))
     .setColor(0x2ecc71);
 
-  // Encode selected as compact string in customId
-  const encoded = Object.entries(selectedParts).map(([k, v]) => `${k}:${v}`).join('|');
-  const confirmId = `build_confirm_${slot}_${encoded}`;
-
-  if (confirmId.length > 100) {
-    // Too long for customId — use a shorter approach
-    return interaction.editReply({
-      embeds: [embed],
-      components: [
-        new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId(`build_do_${slot}`).setLabel('✅ Build It').setStyle(ButtonStyle.Success),
-          new ButtonBuilder().setCustomId(`pc_slot_${slot}`).setLabel('← Cancel').setStyle(ButtonStyle.Danger)
-        )
-      ]
-    });
-  }
-
   return interaction.editReply({
     embeds: [embed],
     components: [
       new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(confirmId).setLabel('✅ Build It').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`build_do_${slot}`).setLabel('✅ Build It').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId(`pc_slot_${slot}`).setLabel('← Cancel').setStyle(ButtonStyle.Danger)
       )
     ]
