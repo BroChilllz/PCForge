@@ -40,6 +40,15 @@ export async function handleInteraction(interaction) {
     return interaction.reply({ embeds: [errEmbed(`⏱️ Slow down! Wait **${cd}s**.`)], ephemeral: true });
   }
 
+  // ── Owner check ────────────────────────────────────────────────
+  const originalUserId = interaction.message.interaction?.user?.id;
+  if (originalUserId && originalUserId !== interaction.user.id) {
+    return interaction.reply({
+      embeds: [errEmbed('This menu belongs to someone else. Use `/play` to open your own!')],
+      ephemeral: true
+    });
+  }
+
   await interaction.deferUpdate().catch(() => {});
 
   try {
