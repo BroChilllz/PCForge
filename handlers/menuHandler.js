@@ -89,7 +89,6 @@ export function renderShopCategory(player, category, page = 0) {
       components: [new ActionRowBuilder().addComponents(btn('shop_cat_back', '← Categories', ButtonStyle.Secondary))]
     };
   }
-  const allParts = getPartsByCategory(category).filter(p => p.levelRequired <= player.level);
   const PAGE_SIZE = 25;
   const pageCount = Math.ceil(allParts.length / PAGE_SIZE);
   const pageParts = allParts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
