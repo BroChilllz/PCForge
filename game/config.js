@@ -6,9 +6,9 @@ export const XP_THRESHOLDS = [
 ];
 
 export const XP_REWARDS = {
-  buyPart: 1.1,
+  buyPart: 1.2,
   //buildPc: 50,
-  collectEarnings: 1.15,
+  collectEarnings: 1.25,
   completeBenchmark: 20,
   prestige: 0,
   scavenge: 8,
