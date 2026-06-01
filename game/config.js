@@ -17,6 +17,28 @@ export const XP_REWARDS = {
   firstBuild: 100
 };
 
+export const PRESTIGE_LEVEL_REQUIREMENTS = [20, 25, 30, 35, 40, 40];
+
+export const PRESTIGE_MONEY_MULTIPLIERS = {
+  0: 1,
+  1: 1.5,
+  2: 2.25,
+  3: 3,
+  4: 4,
+  5: 5.25,
+  6: 6.75
+};
+
+export function getPrestigeLevelRequirement(currentPrestige = 0) {
+  const index = Math.max(0, Math.trunc(currentPrestige));
+  return PRESTIGE_LEVEL_REQUIREMENTS[Math.min(index, PRESTIGE_LEVEL_REQUIREMENTS.length - 1)];
+}
+
+export function getPrestigeMoneyMultiplier(prestige = 0) {
+  const cappedPrestige = Math.min(Math.max(0, Math.trunc(prestige)), 6);
+  return PRESTIGE_MONEY_MULTIPLIERS[cappedPrestige] ?? 1;
+}
+
 export const TIER_LEVEL_REQUIREMENTS = {
   budget: 0,
   midrange: 0,
@@ -44,11 +66,12 @@ export const WEAR_RATES = {
 };
 
 export const PRESTIGE_BONUSES = {
-  1:  { earningsMultiplier: 1.10, badge: '⭐ Prestige I' },
-  2:  { earningsMultiplier: 1.20, badge: '⭐⭐ Prestige II', unlocks: 'dark_web_server' },
-  3:  { earningsMultiplier: 1.30, badge: '⭐⭐⭐ Prestige III', shopDiscount: 0.05 },
-  5:  { earningsMultiplier: 1.50, badge: '🌟 Prestige V', unlocks: 'universe_sim' },
-  10: { earningsMultiplier: 2.00, badge: '🌌 Silicon God', title: 'Silicon God' }
+  1: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[1], badge: '⭐ Prestige I' },
+  2: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[2], badge: '⭐⭐ Prestige II', unlocks: 'dark_web_server' },
+  3: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[3], badge: '⭐⭐⭐ Prestige III', shopDiscount: 0.05 },
+  4: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[4], badge: 'Prestige IV' },
+  5: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[5], badge: '🌟 Prestige V', unlocks: 'universe_sim' },
+  6: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[6], badge: 'Prestige VI' }
 };
 
 export const marketEvents = [

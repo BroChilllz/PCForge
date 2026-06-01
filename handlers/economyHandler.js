@@ -1,7 +1,7 @@
 // handlers/economyHandler.js — All earnings math
 import { tasks } from '../game/tasks.js';
 import { parts as PARTS } from '../game/parts.js';
-import { WEAR_RATES, XP_THRESHOLDS, XP_REWARDS, MAX_COLLECT_HOURS, marketEvents } from '../game/config.js';
+import { WEAR_RATES, XP_THRESHOLDS, XP_REWARDS, MAX_COLLECT_HOURS, marketEvents, getPrestigeMoneyMultiplier } from '../game/config.js';
 
 export function getMarketMultiplier(marketState, taskId) {
   if (!marketState || !marketState.eventId) return 1.0;
@@ -12,7 +12,11 @@ export function getMarketMultiplier(marketState, taskId) {
   return 1.0;
 }
 
-export function calculateEarnings(pc, player, marketState) {
+function roundMoney(value) {
+  return Math.max(0, Math.round(value * 100) / 100);
+}
+
+function calculateRawEarningsPerHour(pc, player, marketState, includeVariance = true) {
   if (!pc.built || !pc.task || pc.task === 'idle' || !pc.online) return 0;
   if (pc.offlineUntil && new Date() < new Date(pc.offlineUntil)) return 0;
 
@@ -32,7 +36,7 @@ export function calculateEarnings(pc, player, marketState) {
 
   // Wear penalty
   let wearMultiplier = 1.0;
-  for (const [component, wearVal] of Object.entries(pc.wear)) {
+  for (const wearVal of Object.values(pc.wear || {})) {
     if (wearVal >= 100) return 0;
     if (wearVal >= 80) wearMultiplier *= 0.85;
   }
@@ -64,12 +68,13 @@ export function calculateEarnings(pc, player, marketState) {
   const scalingBase = task.primaryStat === 'cpu' ? cpuScore
     : task.primaryStat === 'gpu' ? gpuScore
     : task.primaryStat === 'ram' ? ramScore
+    : task.primaryStat === 'storage' ? storageScore
     : combinedScore;
   let scaledEarnings = task.baseEarningsPerHour * (1 + (scalingBase / 10) * task.earningsScalingFactor);
 
   // Task-specific modifiers
   if (task.earningsTax) scaledEarnings *= (1 - task.earningsTax);
-  if (task.earningsVariance) {
+  if (task.earningsVariance && includeVariance) {
     const variance = (Math.random() * 2 - 1) * task.earningsVariance;
     scaledEarnings *= (1 + variance);
   }
@@ -86,26 +91,34 @@ export function calculateEarnings(pc, player, marketState) {
   }
 
   // Prestige multiplier
-  const prestigeMultiplier = 1 + (player.prestige * 0.10);
+  const prestigeMultiplier = getPrestigeMoneyMultiplier(player.prestige);
 
-  // Hours since last collected (cap at 24)
-  const hoursSinceCollect = Math.min(
-    (Date.now() - new Date(pc.lastCollected).getTime()) / 3600000,
-    MAX_COLLECT_HOURS
-  );
-
-  const earnings = scaledEarnings
+  return scaledEarnings
     * wearMultiplier
     * psuMultiplier
     * bottleneckMultiplier
     * marketMultiplier
     * boostMultiplier
     * prestigeMultiplier
-    * hoursSinceCollect
     * storageMultiplier
     * moboMultiplier;
+}
 
-  return Math.max(0, Math.round(earnings * 100) / 100);
+export function calculateEarningsPerHour(pc, player, marketState, options = {}) {
+  const includeVariance = options.includeVariance ?? false;
+  return roundMoney(calculateRawEarningsPerHour(pc, player, marketState, includeVariance));
+}
+
+export function calculateEarnings(pc, player, marketState) {
+  const earningsPerHour = calculateRawEarningsPerHour(pc, player, marketState, true);
+
+  // Hours since last collected
+  const hoursSinceCollect = Math.min(
+    (Date.now() - new Date(pc.lastCollected).getTime()) / 3600000,
+    MAX_COLLECT_HOURS
+  );
+
+  return roundMoney(earningsPerHour * hoursSinceCollect);
 }
 
 export function applyWear(pc, hoursElapsed) {

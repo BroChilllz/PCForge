@@ -2,9 +2,9 @@
 import Player from '../models/Player.js';
 import { parts as PARTS, getPartsByCategory } from '../game/parts.js';
 import { tasks as TASKS } from '../game/tasks.js';
-import { COOLDOWNS, XP_REWARDS, marketEvents } from '../game/config.js';
+import { COOLDOWNS, XP_REWARDS, marketEvents, getPrestigeLevelRequirement, getPrestigeMoneyMultiplier } from '../game/config.js';
 import { cooldowns, getMarketState } from '../index.js';
-import { calculateEarnings, applyWear, addXp } from './economyHandler.js';
+import { calculateEarnings, calculateEarningsPerHour, applyWear, addXp } from './economyHandler.js';
 import {
   renderMainMenu, renderShopCategories, renderShopCategory, renderPartDetail,
   renderPcList, renderPcDetail, renderInventory, renderInventoryItemAction,
@@ -107,6 +107,7 @@ export async function handleInteraction(interaction) {
     }
 
     // ── PC Slots ───────────────────────────────────────────────────
+    if (id === 'pc_collect_all') return handleCollectAll(interaction, player, marketState);
     if (id.startsWith('pc_slot_')) {
       const slot = parseInt(id.replace('pc_slot_', ''));
       const pc = player.pcs.find(p => p.slot === slot) || { slot, built: false };
@@ -124,7 +125,7 @@ export async function handleInteraction(interaction) {
       const slot = parseInt(id.replace('pc_assign_task_', ''));
       const pc = player.pcs.find(p => p.slot === slot);
       if (!pc || !pc.built) return interaction.editReply({ embeds: [errEmbed('PC not found.')], components: [] });
-      return handleTaskAssignMenu(interaction, player, pc);
+      return handleTaskAssignMenu(interaction, player, pc, marketState);
     }
     if (id.startsWith('pc_upgrade_')) {
       const slot = parseInt(id.replace('pc_upgrade_', ''));
@@ -203,7 +204,8 @@ export async function handleInteraction(interaction) {
     if (id === 'bank_withdraw_half') return handleBankWithdraw(interaction, player, 'half');
     if (id === 'profile_prestige') return handlePrestige(interaction, player);
     if (id === 'profile_prestige_locked') {
-      return interaction.editReply({ embeds: [errEmbed('You need to be Level 20+ and have owned an Exotic+ part to prestige.')], components: [backRow('menu_profile')] });
+      const requiredLevel = getPrestigeLevelRequirement(player.prestige);
+      return interaction.editReply({ embeds: [errEmbed(`You need to be Level ${requiredLevel}+ to prestige.`)], components: [backRow('menu_profile')] });
     }
 
     // ── Tasks ──────────────────────────────────────────────────────
@@ -212,7 +214,7 @@ export async function handleInteraction(interaction) {
       const slot = parseInt(val.replace('tasks_assign_pc_', ''));
       const pc = player.pcs.find(p => p.slot === slot);
       if (!pc || !pc.built) return interaction.editReply({ embeds: [errEmbed('PC not found.')], components: [] });
-      return handleTaskAssignMenu(interaction, player, pc);
+      return handleTaskAssignMenu(interaction, player, pc, marketState);
     }
     if (id === 'tasks_assign_select' && interaction.isStringSelectMenu()) {
       return handleTaskAssign(interaction, player);
@@ -298,6 +300,49 @@ async function handleCollect(interaction, player, slot, marketState) {
     `Wallet: ${formatMoney(player.wallet)}`
   );
   return interaction.editReply({ embeds: [embed], components: [backRow(`pc_slot_${slot}`)] });
+}
+
+async function handleCollectAll(interaction, player, marketState) {
+  let totalEarnings = 0;
+  let totalXp = 0;
+  const collected = [];
+  const now = new Date();
+
+  for (const pc of player.pcs) {
+    if (!pc.built) continue;
+
+    const earnings = calculateEarnings(pc, player, marketState);
+    if (earnings <= 0) continue;
+
+    const hoursElapsed = (Date.now() - new Date(pc.lastCollected).getTime()) / 3600000;
+    pc.wear = applyWear(pc, Math.min(hoursElapsed, 24));
+    pc.totalEarned = (pc.totalEarned || 0) + earnings;
+    pc.lastCollected = now;
+
+    totalEarnings += earnings;
+    totalXp += Math.floor(Math.pow(earnings, XP_REWARDS.collectEarnings));
+    collected.push(`**${pc.name || `PC Slot ${pc.slot}`}**: +${formatMoney(earnings)}`);
+  }
+
+  if (totalEarnings <= 0) {
+    return interaction.editReply({
+      embeds: [errEmbed('No earnings to collect. PCs may be idle, offline, or fully worn out.')],
+      components: [backRow('menu_pcs')]
+    });
+  }
+
+  player.wallet += totalEarnings;
+  player.totalLifetimeEarned = (player.totalLifetimeEarned || 0) + totalEarnings;
+  const { leveled, newLevel } = totalXp > 0 ? addXp(player, totalXp) : { leveled: false, newLevel: player.level };
+  await player.save();
+
+  const embed = successEmbed('All Earnings Collected',
+    `💰 **+${formatMoney(totalEarnings)}** collected from ${collected.length} PC${collected.length === 1 ? '' : 's'}!\n` +
+    collected.slice(0, 4).join('\n') +
+    (totalXp > 0 ? `\n+${totalXp} XP${leveled ? ` 🎉 Level **${newLevel}**!` : ''}` : '') +
+    `\nWallet: ${formatMoney(player.wallet)}`
+  );
+  return interaction.editReply({ embeds: [embed], components: [backRow('menu_pcs')] });
 }
 
 // ── Scavenge ──────────────────────────────────────────────────────
@@ -731,7 +776,7 @@ async function handleRenameSet(interaction, player, slot, rawName) {
 }
 
 // ── Task assign ───────────────────────────────────────────────────
-async function handleTaskAssignMenu(interaction, player, pc) {
+async function handleTaskAssignMenu(interaction, player, pc, marketState) {
   const { getAvailableTasks } = await import('../game/tasks.js');
   const available = getAvailableTasks(player, pc, PARTS);
 
@@ -749,19 +794,16 @@ async function handleTaskAssignMenu(interaction, player, pc) {
     
   const options = available.slice(0, 25).map(t => {
     const pcParts = pc.parts.toObject ? pc.parts.toObject() : pc.parts;
-    const cpuScore = PARTS[pcParts.cpu]?.score || 0;
-    const gpuScore = PARTS[pcParts.gpu]?.score || 0;
-    const ramScore = PARTS[pcParts.ram]?.score || 0;
-    const storageScore = PARTS[pcParts.storage]?.score || 0;
-  
-    const scalingBase = t.primaryStat === 'cpu' ? cpuScore
-      : t.primaryStat === 'gpu' ? gpuScore
-      : t.primaryStat === 'ram' ? ramScore
-      : t.primaryStat === 'storage' ? storageScore
-      : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
-  
-    const rawPerHour = t.baseEarningsPerHour * (1 + (scalingBase / 10) * t.earningsScalingFactor);
-    const estimatedPerHour = Math.pow(Math.max(0, rawPerHour), 1.15);
+    const pcWear = pc.wear?.toObject ? pc.wear.toObject() : pc.wear;
+    const estimatedPerHour = calculateEarningsPerHour({
+      built: true,
+      task: t.id,
+      online: true,
+      offlineUntil: null,
+      activeBoost: pc.activeBoost,
+      parts: pcParts,
+      wear: pcWear
+    }, player, marketState);
   
     const statLabel = primaryStatLabel[t.primaryStat] || '⚖️ Balanced';
   

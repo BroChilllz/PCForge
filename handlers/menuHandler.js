@@ -5,9 +5,9 @@ import {
 } from 'discord.js';
 import { parts as PARTS, CATEGORIES, getPartsByCategory } from '../game/parts.js';
 import { tasks as TASKS, getAvailableTasks } from '../game/tasks.js';
-import { marketEvents, TIER_COLORS, STATUS_COLORS, XP_THRESHOLDS } from '../game/config.js';
+import { marketEvents, TIER_COLORS, STATUS_COLORS, XP_THRESHOLDS, getPrestigeLevelRequirement } from '../game/config.js';
 import { formatMoney, wearBar, tierEmoji, statusEmoji, xpBar, shortNum, tierLabel } from '../utils/format.js';
-import { calculateEarnings, analyzeBottleneck } from './economyHandler.js';
+import { calculateEarnings, calculateEarningsPerHour, analyzeBottleneck } from './economyHandler.js';
 
 function footer(player) {
   return { text: `PCForge v1.0 • Your wallet: ${formatMoney(player?.wallet ?? 0)}` };
@@ -182,7 +182,10 @@ export function renderPcList(player) {
     embeds: [embed],
     components: [
       new ActionRowBuilder().addComponents(...buttons),
-      new ActionRowBuilder().addComponents(btn('menu_main', '← Back', ButtonStyle.Secondary))
+      new ActionRowBuilder().addComponents(
+        btn('pc_collect_all', '💵 Collect All', ButtonStyle.Success),
+        btn('menu_main', '← Back', ButtonStyle.Secondary)
+      )
     ]
   };
 }
@@ -227,40 +230,7 @@ export function renderPcDetail(player, pc, marketState) {
   // Bottleneck analysis
   const bottleneck = analyzeBottleneck(pc);
   
-  const cpuScore = PARTS[pc.parts.cpu]?.score || 0;
-  const gpuScore = PARTS[pc.parts.gpu]?.score || 0;
-  const ramScore = PARTS[pc.parts.ram]?.score || 0;
-  const storageScore = PARTS[pc.parts.storage]?.score || 0;
-  const moboScore = PARTS[pc.parts.motherboard]?.score || 0;
-  const coolingScore = PARTS[pc.parts.cooling]?.score || 0;
-  const caseScore = PARTS[pc.parts.case]?.score || 0;
-  
-  const psuPart = PARTS[pc.parts.psu];
-  const totalTdp = (PARTS[pc.parts.cpu]?.wattage || 0) + (PARTS[pc.parts.gpu]?.wattage || 0);
-  let psuMultiplier = 1.0;
-  if (!psuPart) psuMultiplier = 0.5;
-  else if (psuPart.wattage < totalTdp) psuMultiplier = 0.5;
-  else if (psuPart.wattage >= totalTdp * 1.5) psuMultiplier = 1.1;
-  
-  const storageMultiplier = 1 + (storageScore * 0.02);
-  const moboMultiplier = 1 + (moboScore * 0.01);
-  const thermalBonus = 1 + (caseScore * 0.005);
-  const effectiveCoolingScore = coolingScore * thermalBonus;
-  
-  let earningsPerHour = 0;
-  if (task) {
-    const scalingBase = task.primaryStat === 'cpu' ? cpuScore
-      : task.primaryStat === 'gpu' ? gpuScore
-      : task.primaryStat === 'ram' ? ramScore
-      : task.primaryStat === 'storage' ? storageScore
-      : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
-    const rawPerHour = task.baseEarningsPerHour
-      * (1 + (scalingBase / 10) * task.earningsScalingFactor)
-      * psuMultiplier
-      * storageMultiplier
-      * moboMultiplier;
-    earningsPerHour = Math.pow(Math.max(0, rawPerHour), 1.15);
-  }
+  const earningsPerHour = task ? calculateEarningsPerHour(pc, player, marketState) : 0;
   
   embed.setDescription(
     `**Status:** ${statusEmoji(pc)} ${isOffline ? '🔴 Offline' : (task ? `🟢 ${task.emoji} ${task.name}` : '🟡 Idle')}\n` +
@@ -379,6 +349,7 @@ export function renderInventoryItemAction(player, inventoryIndex) {
 // ──────────────────────────── PROFILE ────────────────────────────
 export function renderProfile(player) {
   const nextXp = XP_THRESHOLDS[player.level] ?? XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+  const prestigeLevelRequired = getPrestigeLevelRequirement(player.prestige);
   const embed = new EmbedBuilder()
     .setTitle('📊 Profile')
     .setColor(0x5865F2)
@@ -392,16 +363,14 @@ export function renderProfile(player) {
       { name: '🏦 Bank', value: formatMoney(player.bank), inline: true },
       { name: '🌟 Karma', value: String(player.karmaPoints), inline: true },
       { name: '🏆 Prestige', value: String(player.prestige), inline: true },
+      { name: 'Next Prestige', value: `Level ${prestigeLevelRequired}`, inline: true },
       { name: '📈 Lifetime Earned', value: formatMoney(player.totalLifetimeEarned), inline: true },
       { name: '🎒 Parts Owned', value: String(player.inventory.length), inline: true }
     )
     .setFooter(footer(player))
     .setTimestamp();
 
-  const canPrestige = player.level >= 20 && player.inventory.some(i => {
-    const p = PARTS[i.partId];
-    return p && ['exotic', 'legendary', 'mythic'].includes(p.tier);
-  });
+  const canPrestige = player.level >= prestigeLevelRequired;
 
   const rows = [
     new ActionRowBuilder().addComponents(
