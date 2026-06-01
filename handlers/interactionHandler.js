@@ -739,13 +739,38 @@ async function handleTaskAssignMenu(interaction, player, pc) {
     return interaction.editReply({ embeds: [errEmbed('No tasks available for this PC. You may need better parts or a higher level.')], components: [backRow('menu_tasks')] });
   }
 
-  const options = available.slice(0, 25).map(t =>
-    new StringSelectMenuOptionBuilder()
-      .setLabel(`${t.name} — ${formatMoney(t.baseEarningsPerHour)}/hr`)
+  const primaryStatLabel = {
+    cpu: `💻 CPU-heavy`,
+    gpu: `🖥️ GPU-heavy`,
+    ram: `🧠 RAM-heavy`,
+    storage: `💾 Storage-heavy`,
+  };
+  
+    
+  const options = available.slice(0, 25).map(t => {
+    const pcParts = pc.parts.toObject ? pc.parts.toObject() : pc.parts;
+    const cpuScore = PARTS[pcParts.cpu]?.score || 0;
+    const gpuScore = PARTS[pcParts.gpu]?.score || 0;
+    const ramScore = PARTS[pcParts.ram]?.score || 0;
+    const storageScore = PARTS[pcParts.storage]?.score || 0;
+  
+    const scalingBase = t.primaryStat === 'cpu' ? cpuScore
+      : t.primaryStat === 'gpu' ? gpuScore
+      : t.primaryStat === 'ram' ? ramScore
+      : t.primaryStat === 'storage' ? storageScore
+      : (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
+  
+    const rawPerHour = t.baseEarningsPerHour * (1 + (scalingBase / 10) * t.earningsScalingFactor);
+    const estimatedPerHour = Math.pow(Math.max(0, rawPerHour), 1.15);
+  
+    const statLabel = primaryStatLabel[t.primaryStat] || '⚖️ Balanced';
+  
+    return new StringSelectMenuOptionBuilder()
+      .setLabel(`${t.name} — ~${formatMoney(estimatedPerHour)}/hr`)
       .setValue(`assign_${pc.slot}_${t.id}`)
-      .setDescription(`Risk: ${'⚠️'.repeat(t.riskLevel) || 'None'} | Lvl ${t.levelRequired}+`)
-      .setEmoji(t.emoji)
-  );
+      .setDescription(`${statLabel} | Risk: ${'⚠️'.repeat(t.riskLevel) || 'None'} | Lvl ${t.levelRequired}+`)
+      .setEmoji(t.emoji.replace(/\uFE0F/g, ''));
+  });
 
   const embed = new EmbedBuilder()
     .setTitle(`📋 Assign Task — ${pc.name || `Slot ${pc.slot}`}`)
