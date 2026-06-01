@@ -870,6 +870,7 @@ async function handlePrestige(interaction, player) {
   player.xp = 0;
   player.level = 1;
   player.wallet = 500;
+  player.bank = 0;
   player.inventory = [];
   for (const pc of player.pcs) {
     pc.built = false;
@@ -882,7 +883,7 @@ async function handlePrestige(interaction, player) {
   await player.save();
 
   return interaction.editReply({
-    embeds: [successEmbed(`🌟 Prestige ${player.prestige}!`, `You have ascended! Your grind resets, but your legacy remains.\n+10% permanent earnings bonus per prestige level.\nWallet reset to $500. Bank and karma preserved.`)],
+    embeds: [successEmbed(`🌟 Prestige ${player.prestige}!`, `You have ascended! Your grind resets, but your legacy remains.\n+10% permanent earnings bonus per prestige level.\nWallet reset to $500. Bank reset to $0. Karma preserved.`)],
     components: [backRow('menu_main')]
   });
 }
