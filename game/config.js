@@ -65,6 +65,8 @@ export const WEAR_RATES = {
   mythic: 0.08
 };
 
+export const WEAR_SPEED_MULTIPLIER = 10;
+
 export const PRESTIGE_BONUSES = {
   1: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[1], badge: '⭐ Prestige I' },
   2: { earningsMultiplier: PRESTIGE_MONEY_MULTIPLIERS[2], badge: '⭐⭐ Prestige II', unlocks: 'dark_web_server' },

@@ -7,13 +7,77 @@ import { parts as PARTS, CATEGORIES, getPartsByCategory } from '../game/parts.js
 import { tasks as TASKS, getAvailableTasks } from '../game/tasks.js';
 import { marketEvents, TIER_COLORS, STATUS_COLORS, XP_THRESHOLDS, getPrestigeLevelRequirement } from '../game/config.js';
 import { formatMoney, wearBar, tierEmoji, statusEmoji, xpBar, shortNum, tierLabel } from '../utils/format.js';
-import { calculateEarnings, calculateEarningsPerHour, analyzeBottleneck } from './economyHandler.js';
+import { calculateEarnings, calculateEarningsPerHour, getBottleneckReport } from './economyHandler.js';
 
 function footer(player) {
   return { text: `PCForge v1.0 • Your wallet: ${formatMoney(player?.wallet ?? 0)}` };
 }
 function cap(str) {
   return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+function scoreLabel(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function discordTime(date, style = 'R') {
+  const timestamp = Math.floor(new Date(date).getTime() / 1000);
+  return `<t:${timestamp}:${style}>`;
+}
+
+function pcStatusText(pc, task) {
+  const offlineUntil = pc.offlineUntil ? new Date(pc.offlineUntil) : null;
+  const hasTemporaryDowntime = offlineUntil && Date.now() < offlineUntil.getTime();
+
+  if (!pc.online && hasTemporaryDowntime) {
+    return `Offline - disabled and event downtime ends ${discordTime(offlineUntil)}`;
+  }
+  if (!pc.online) {
+    return 'Offline - stored offline flag is false; assigning a task brings it back online';
+  }
+  if (hasTemporaryDowntime) {
+    return `Offline - random event downtime ends ${discordTime(offlineUntil)}`;
+  }
+  return task ? `${task.emoji} ${task.name}` : 'Idle';
+}
+
+function bottleneckLines(pc, report) {
+  const lines = [];
+  const strongest = report.strongest;
+
+  if (report.severity === 'incomplete') {
+    const missing = report.bottlenecks.map(item => item.key.toUpperCase()).join(', ');
+    lines.push(`Missing required core component(s): ${missing}. Earnings are blocked.`);
+  } else {
+    for (const item of report.bottlenecks) {
+      const pct = Math.round(item.ratioToStrongest * 100);
+      lines.push(`${item.label} ${item.key.toUpperCase()} bottleneck: ${scoreLabel(item.score)} score is ${pct}% of ${strongest.label} (${scoreLabel(strongest.score)}).`);
+    }
+    if (report.penaltyPercent > 0) {
+      lines.push(`Core balance punishment: -${report.penaltyPercent}% earnings (${report.multiplier.toFixed(1)}x multiplier).`);
+    }
+  }
+
+  const cpu = PARTS[pc.parts?.cpu];
+  const gpu = PARTS[pc.parts?.gpu];
+  const psu = PARTS[pc.parts?.psu];
+  const cooling = PARTS[pc.parts?.cooling];
+  if (cpu && gpu) {
+    const totalTdp = (cpu.wattage || 0) + (gpu.wattage || 0);
+    if (!psu) {
+      lines.push(`Power bottleneck: no PSU installed for ${totalTdp}W CPU+GPU draw. Earnings punishment: -50%.`);
+    } else if (psu.wattage < totalTdp) {
+      lines.push(`Power bottleneck: ${psu.name} is ${psu.wattage}W, below ${totalTdp}W CPU+GPU draw. Earnings punishment: -50%.`);
+    }
+  }
+
+  if (cpu && cooling && ['exotic', 'legendary', 'mythic'].includes(cpu.tier) && ['stock_cooler', 'cooler_budget_tower'].includes(cooling.id)) {
+    lines.push(`Thermal bottleneck: ${cooling.name} is too weak for ${cpu.name}. Wear climbs faster without better cooling.`);
+  }
+
+  if (lines.length === 0) lines.push('No bottlenecks detected.');
+  return lines;
 }
 
 // ──────────────────────────── MAIN MENU ────────────────────────────
@@ -227,18 +291,23 @@ export function renderPcDetail(player, pc, marketState) {
     });
   }
 
-  // Bottleneck analysis
-  const bottleneck = analyzeBottleneck(pc);
-  
+  const bottleneckReport = getBottleneckReport(pc);
+  const bottlenecks = bottleneckLines(pc, bottleneckReport);
   const earningsPerHour = task ? calculateEarningsPerHour(pc, player, marketState) : 0;
   
   embed.setDescription(
-    `**Status:** ${statusEmoji(pc)} ${isOffline ? '🔴 Offline' : (task ? `🟢 ${task.emoji} ${task.name}` : '🟡 Idle')}\n` +
+    `**Status:** ${statusEmoji(pc)} ${pcStatusText(pc, task)}\n` +
     `**Pending Earnings:** +${formatMoney(pendingEarnings)} 💰\n` +
     (task ? `**Earning:** ${formatMoney(earningsPerHour)}/hr\n` : '') +
-    `**Total Earned:** ${formatMoney(pc.totalEarned)}\n\n` +
-    `**Analysis:** ${bottleneck[0]}`
+    `**Bottleneck Penalty:** ${bottleneckReport.penaltyPercent > 0 ? `-${bottleneckReport.penaltyPercent}% earnings` : 'None'}\n` +
+    `**Total Earned:** ${formatMoney(pc.totalEarned)}`
   );
+
+  embed.addFields({
+    name: 'Bottlenecks',
+    value: bottlenecks.map(line => `- ${line}`).join('\n').substring(0, 1024),
+    inline: false
+  });
 
   if (partFields.length) embed.addFields(partFields);
 

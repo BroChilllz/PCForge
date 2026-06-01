@@ -1,7 +1,7 @@
 // handlers/economyHandler.js — All earnings math
 import { tasks } from '../game/tasks.js';
 import { parts as PARTS } from '../game/parts.js';
-import { WEAR_RATES, XP_THRESHOLDS, XP_REWARDS, MAX_COLLECT_HOURS, marketEvents, getPrestigeMoneyMultiplier } from '../game/config.js';
+import { WEAR_RATES, WEAR_SPEED_MULTIPLIER, XP_THRESHOLDS, MAX_COLLECT_HOURS, marketEvents, getPrestigeMoneyMultiplier } from '../game/config.js';
 
 export function getMarketMultiplier(marketState, taskId) {
   if (!marketState || !marketState.eventId) return 1.0;
@@ -14,6 +14,77 @@ export function getMarketMultiplier(marketState, taskId) {
 
 function roundMoney(value) {
   return Math.max(0, Math.round(value * 100) / 100);
+}
+
+const CORE_COMPONENTS = [
+  { key: 'cpu', label: 'CPU' },
+  { key: 'gpu', label: 'GPU' },
+  { key: 'ram', label: 'RAM' }
+];
+
+const BOTTLENECK_TIERS = [
+  { severity: 'severe', label: 'Severe', ratio: 0.3, multiplier: 0.6 },
+  { severity: 'moderate', label: 'Moderate', ratio: 0.5, multiplier: 0.8 }
+];
+
+export function getBottleneckReport(pc) {
+  const scores = CORE_COMPONENTS.map(component => {
+    const part = PARTS[pc.parts?.[component.key]];
+    return {
+      ...component,
+      part,
+      score: part?.score || 0
+    };
+  });
+
+  const missing = scores.filter(item => !item.part);
+  if (missing.length > 0) {
+    return {
+      multiplier: 0,
+      penaltyPercent: 100,
+      severity: 'incomplete',
+      strongest: null,
+      bottlenecks: missing.map(item => ({
+        ...item,
+        severity: 'missing',
+        label: 'Missing',
+        ratioToStrongest: 0
+      })),
+      scores
+    };
+  }
+
+  const strongest = scores.reduce((best, item) => item.score > best.score ? item : best, scores[0]);
+  const bottlenecks = scores
+    .filter(item => item.key !== strongest.key)
+    .map(item => {
+      const ratioToStrongest = strongest.score > 0 ? item.score / strongest.score : 1;
+      const tier = BOTTLENECK_TIERS.find(candidate => ratioToStrongest < candidate.ratio);
+      if (!tier) return null;
+      return {
+        ...item,
+        severity: tier.severity,
+        label: tier.label,
+        ratioToStrongest
+      };
+    })
+    .filter(Boolean);
+
+  const activeTier = bottlenecks.some(item => item.severity === 'severe')
+    ? BOTTLENECK_TIERS[0]
+    : bottlenecks.length > 0
+      ? BOTTLENECK_TIERS[1]
+      : null;
+
+  const multiplier = activeTier?.multiplier ?? 1.0;
+  return {
+    multiplier,
+    penaltyPercent: Math.round((1 - multiplier) * 100),
+    severity: activeTier?.severity ?? 'none',
+    strongest,
+    bottlenecks,
+    scores
+  };
 }
 
 function calculateRawEarningsPerHour(pc, player, marketState, includeVariance = true) {
@@ -59,10 +130,7 @@ function calculateRawEarningsPerHour(pc, player, marketState, includeVariance = 
   const combinedScore = (cpuScore * 0.35) + (gpuScore * 0.45) + (ramScore * 0.20);
 
   // Bottleneck penalty
-  const scores = [cpuScore, gpuScore, ramScore].filter(s => s > 0);
-  const maxScore = scores.length ? Math.max(...scores) : 1;
-  const minScore = scores.length ? Math.min(...scores) : 0;
-  const bottleneckMultiplier = minScore < maxScore * 0.3 ? 0.7 : 1.0;
+  const bottleneckMultiplier = getBottleneckReport(pc).multiplier;
 
   // Earnings scaling
   const scalingBase = task.primaryStat === 'cpu' ? cpuScore
@@ -145,8 +213,8 @@ export function applyWear(pc, hoursElapsed) {
     const part = PARTS[partId];
     if (!part) continue;
     const baseRate = WEAR_RATES[part.tier] ?? 0.35;
-    const wearIncrease = baseRate * task.wearRateMultiplier * hoursElapsed;
-    newWear[comp] = Math.min(100, ((newWear[comp] || 0) + wearIncrease)*wearReduction);
+    const wearIncrease = baseRate * task.wearRateMultiplier * hoursElapsed * WEAR_SPEED_MULTIPLIER * wearReduction;
+    newWear[comp] = Math.min(100, (newWear[comp] || 0) + wearIncrease);
   }
 
   return newWear;
