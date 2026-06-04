@@ -7,7 +7,7 @@ import { parts as PARTS, CATEGORIES, getPartsByCategory } from '../game/parts.js
 import { tasks as TASKS, getAvailableTasks } from '../game/tasks.js';
 import { marketEvents, TIER_COLORS, STATUS_COLORS, XP_THRESHOLDS, getPrestigeLevelRequirement } from '../game/config.js';
 import { formatMoney, wearBar, tierEmoji, statusEmoji, xpBar, shortNum, tierLabel } from '../utils/format.js';
-import { calculateEarnings, calculateEarningsPerHour, getBottleneckReport } from './economyHandler.js';
+import { calculateEarnings, calculateEarningsPerHour, calculateRepairCost, getBottleneckReport } from './economyHandler.js';
 
 function footer(player) {
   return { text: `PCForge v1.0 • Your wallet: ${formatMoney(player?.wallet ?? 0)}` };
@@ -294,11 +294,13 @@ export function renderPcDetail(player, pc, marketState) {
   const bottleneckReport = getBottleneckReport(pc);
   const bottlenecks = bottleneckLines(pc, bottleneckReport);
   const earningsPerHour = task ? calculateEarningsPerHour(pc, player, marketState) : 0;
+  const repairCost = calculateRepairCost(pc);
   
   embed.setDescription(
     `**Status:** ${statusEmoji(pc)} ${pcStatusText(pc, task)}\n` +
     `**Pending Earnings:** +${formatMoney(pendingEarnings)} 💰\n` +
     (task ? `**Earning:** ${formatMoney(earningsPerHour)}/hr\n` : '') +
+    `**Repair All:** ${repairCost > 0 ? formatMoney(repairCost) : 'No repairs needed'}\n` +
     `**Bottleneck Penalty:** ${bottleneckReport.penaltyPercent > 0 ? `-${bottleneckReport.penaltyPercent}% earnings` : 'None'}\n` +
     `**Total Earned:** ${formatMoney(pc.totalEarned)}`
   );
@@ -320,7 +322,15 @@ export function renderPcDetail(player, pc, marketState) {
   );
   const backRow = new ActionRowBuilder().addComponents(btn('menu_pcs', '← Back', ButtonStyle.Secondary));
 
-  return { embeds: [embed], components: [actionRow, backRow] };
+  const repairRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`pc_repair_all_${pc.slot}`)
+      .setLabel(repairCost > 0 ? `Repair All (${formatMoney(repairCost)})` : 'Repair All')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(repairCost <= 0)
+  );
+
+  return { embeds: [embed], components: [actionRow, repairRow, backRow] };
 }
 
 // ──────────────────────────── INVENTORY ────────────────────────────

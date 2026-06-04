@@ -16,7 +16,7 @@ function roundMoney(value) {
   return Math.max(0, Math.round(value * 100) / 100);
 }
 
-const REPAIR_RATE = 0.25;
+const REPAIR_COST_PER_SCORE = 20;
 const MIN_REPAIR_COST_PER_PART = 5;
 const THERMAL_DECAY_RATE = 0.055;
 
@@ -32,8 +32,8 @@ export function calculateRepairCost(pc) {
     const wear = Math.max(0, Math.min(100, Number(pc.wear?.[slot] || 0)));
     if (wear <= 0) continue;
 
-    const partValue = Math.max(part.price || 0, part.sellPrice || 0, 25);
-    total += Math.max(MIN_REPAIR_COST_PER_PART, partValue * (wear / 100) * REPAIR_RATE);
+    const score = Math.max(Number(part.score || 0), 0.25);
+    total += Math.max(MIN_REPAIR_COST_PER_PART, score * REPAIR_COST_PER_SCORE * (wear / 100));
   }
 
   return roundMoney(total);

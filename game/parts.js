@@ -830,10 +830,50 @@ export const parts = {
   }
 };
 
+const TIER_BALANCE = {
+  budget: { entryPrice: 40, priceStep: 30, entryScore: 2.0, scoreStep: 0.6 },
+  midrange: { entryPrice: 120, priceStep: 80, entryScore: 4.0, scoreStep: 0.8 },
+  highend: { entryPrice: 350, priceStep: 200, entryScore: 7.0, scoreStep: 1.0 },
+  exotic: { entryPrice: 1200, priceStep: 700, entryScore: 10.0, scoreStep: 2.0 },
+  legendary: { entryPrice: 6000, priceStep: 7000, entryScore: 20.0, scoreStep: 8.0 },
+  mythic: { entryPrice: 50000, priceStep: 100000, entryScore: 90.0, scoreStep: 90.0 }
+};
+
+function roundScore(value) {
+  return Math.round(value * 10) / 10;
+}
+
+function applyBalancedPricingAndScores() {
+  const groups = new Map();
+
+  for (const part of Object.values(parts)) {
+    if (!part.price || !TIER_BALANCE[part.tier]) continue;
+    const key = `${part.tier}:${part.category}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(part);
+  }
+
+  for (const group of groups.values()) {
+    group.sort((a, b) => a.price - b.price || a.score - b.score || a.name.localeCompare(b.name));
+
+    group.forEach((part, index) => {
+      const balance = TIER_BALANCE[part.tier];
+      part.price = balance.entryPrice + balance.priceStep * index;
+      part.sellPrice = Math.round(part.price * 0.6);
+      part.score = roundScore(balance.entryScore + balance.scoreStep * index);
+      part.levelRequired = part.levelRequired ?? 0;
+    });
+  }
+}
+
+applyBalancedPricingAndScores();
+
 export const CATEGORIES = ['cpu', 'gpu', 'ram', 'storage', 'psu', 'motherboard', 'cooling', 'case'];
 
 export function getPartsByCategory(category) {
-  return Object.values(parts).filter(p => p.category === category);
+  return Object.values(parts)
+    .filter(p => p.category === category)
+    .sort((a, b) => a.price - b.price || a.score - b.score || a.name.localeCompare(b.name));
 }
 
 export function getPartById(id) {

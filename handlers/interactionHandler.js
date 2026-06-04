@@ -4,7 +4,7 @@ import { parts as PARTS, getPartsByCategory } from '../game/parts.js';
 import { tasks as TASKS } from '../game/tasks.js';
 import { COOLDOWNS, XP_REWARDS, marketEvents, getPrestigeLevelRequirement, getPrestigeMoneyMultiplier } from '../game/config.js';
 import { cooldowns, getMarketState } from '../index.js';
-import { calculateEarnings, calculateEarningsPerHour, applyWear, addXp } from './economyHandler.js';
+import { calculateEarnings, calculateEarningsPerHour, calculateRepairCost, applyWear, addXp } from './economyHandler.js';
 import {
   renderMainMenu, renderShopCategories, renderShopCategory, renderPartDetail,
   renderPcList, renderPcDetail, renderInventory, renderInventoryItemAction,
@@ -120,6 +120,10 @@ export async function handleInteraction(interaction) {
     if (id.startsWith('pc_collect_')) {
       const slot = parseInt(id.replace('pc_collect_', ''));
       return handleCollect(interaction, player, slot, marketState);
+    }
+    if (id.startsWith('pc_repair_all_')) {
+      const slot = parseInt(id.replace('pc_repair_all_', ''));
+      return handleRepairAll(interaction, player, slot);
     }
     if (id.startsWith('pc_assign_task_')) {
       const slot = parseInt(id.replace('pc_assign_task_', ''));
@@ -345,7 +349,52 @@ async function handleCollectAll(interaction, player, marketState) {
   return interaction.editReply({ embeds: [embed], components: [backRow('menu_pcs')] });
 }
 
-// ── Scavenge ──────────────────────────────────────────────────────
+// Repair all installed parts
+async function handleRepairAll(interaction, player, slot) {
+  const pc = player.pcs.find(p => p.slot === slot);
+  if (!pc || !pc.built) {
+    return interaction.editReply({ embeds: [errEmbed('PC not found.')], components: [backRow('menu_pcs')] });
+  }
+
+  const repairCost = calculateRepairCost(pc);
+  if (repairCost <= 0) {
+    return interaction.editReply({ embeds: [errEmbed('No worn parts to repair.')], components: [backRow(`pc_slot_${slot}`)] });
+  }
+  if (player.wallet < repairCost) {
+    return interaction.editReply({
+      embeds: [errEmbed(`Repairing all worn parts costs ${formatMoney(repairCost)}, but you only have ${formatMoney(player.wallet)}.`)],
+      components: [backRow(`pc_slot_${slot}`)]
+    });
+  }
+
+  let repairedParts = 0;
+  let repairedWear = 0;
+  for (const [component, partId] of Object.entries(pc.parts)) {
+    if (!partId) continue;
+    const wear = Math.max(0, Math.min(100, Number(pc.wear?.[component] || 0)));
+    if (wear <= 0) continue;
+    pc.wear[component] = 0;
+    repairedParts += 1;
+    repairedWear += wear;
+  }
+
+  player.wallet = Math.round((player.wallet - repairCost) * 100) / 100;
+  await player.save();
+
+  const avgWear = repairedParts > 0 ? Math.round(repairedWear / repairedParts) : 0;
+  return interaction.editReply({
+    embeds: [successEmbed(
+      'Repair Complete',
+      `Repaired **${repairedParts}** part${repairedParts === 1 ? '' : 's'} on **${pc.name || `PC Slot ${slot}`}**.\n` +
+      `Average wear fixed: **${avgWear}%**\n` +
+      `Cost: **${formatMoney(repairCost)}**\n` +
+      `Wallet: ${formatMoney(player.wallet)}`
+    )],
+    components: [backRow(`pc_slot_${slot}`)]
+  });
+}
+
+// Scavenge
 async function handleScavenge(interaction, player) {
   const now = Date.now();
   const last = player.scavengeLastUsed ? new Date(player.scavengeLastUsed).getTime() : 0;
