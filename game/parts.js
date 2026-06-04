@@ -3,46 +3,46 @@
 export const parts = {
   // ==================== STARTER / FREE PARTS ====================
   // Free parts to get new players earning immediately.
-  // Combined score: (1.5×0.35) + (2.5×0.45) + (1.0×0.20) = 1.85 — unlocks Altcoin + Ethereum mining.
+  // Combined score: (1.2×0.35) + (2.1×0.45) + (0.8×0.20) = 1.525 — unlocks Altcoin + Ethereum mining.
 
   starter_cpu: {
     id: 'starter_cpu', name: 'PCForge Starter CPU', category: 'cpu', tier: 'budget',
-    price: 0, sellPrice: 0, score: 1.5, wattage: 35,
+    price: 0, sellPrice: 0, score: 1.2, wattage: 35,
     flavor: "Free. Gets you started. Don't overthink it.",
     levelRequired: 0,
     specs: { cores: 2, threads: 2, socket: 'Universal', clockspeed: '2.8GHz' }
   },
   starter_gpu: {
     id: 'starter_gpu', name: 'PCForge Starter GPU', category: 'gpu', tier: 'budget',
-    price: 0, sellPrice: 0, score: 2.5, wattage: 60,
+    price: 0, sellPrice: 0, score: 2.1, wattage: 60,
     flavor: "Free GPU. Enough to mine Ethereum. Barely.",
     levelRequired: 0,
     specs: { vram: '4GB GDDR5', tdp: '60W', raytracing: false }
   },
   starter_ram: {
     id: 'starter_ram', name: 'PCForge Starter RAM', category: 'ram', tier: 'budget',
-    price: 0, sellPrice: 0, score: 1.0, wattage: 3,
+    price: 0, sellPrice: 0, score: 0.8, wattage: 3,
     flavor: "Free RAM. It's RAM. It works.",
     levelRequired: 0,
     specs: { capacity: '8GB', speed: '2666MHz', type: 'DDR4' }
   },
   starter_storage: {
     id: 'starter_storage', name: 'PCForge Starter SSD', category: 'storage', tier: 'budget',
-    price: 0, sellPrice: 0, score: 0.3, wattage: 2,
+    price: 0, sellPrice: 0, score: 0.2, wattage: 2,
     flavor: "Free storage. 240GB. Don't install Steam.",
     levelRequired: 0,
     specs: { capacity: '240GB', speed: '500MB/s', type: 'SATA' }
   },
   starter_psu: {
     id: 'starter_psu', name: 'PCForge Starter PSU', category: 'psu', tier: 'budget',
-    price: 0, sellPrice: 0, score: 0.5, wattage: 400,
+    price: 0, sellPrice: 0, score: 0.3, wattage: 400,
     flavor: "Free PSU. 400W. Enough for the starter set.",
     levelRequired: 0,
     specs: { wattage: 400, efficiency: '80+', modular: false }
   },
   starter_motherboard: {
     id: 'starter_motherboard', name: 'PCForge Starter Motherboard', category: 'motherboard', tier: 'budget',
-    price: 0, sellPrice: 0, score: 0.5, wattage: 10,
+    price: 0, sellPrice: 0, score: 0.3, wattage: 10,
     flavor: "Free board. Universal socket. No questions asked.",
     levelRequired: 0,
     specs: { socket: 'Universal', formFactor: 'mATX', pcie: 'PCIe 3.0' }
@@ -688,7 +688,7 @@ export const parts = {
   // ==================== COOLING ====================
   stock_cooler: {
     id: 'stock_cooler', name: 'Stock Box Cooler', category: 'cooling', tier: 'budget',
-    price: 0, sellPrice: 0, score: 0.5, wattage: 5,
+    price: 0, sellPrice: 0, score: 0.25, wattage: 5,
     flavor: 'Loud. Suffering. Still spinning. Somehow.',
     levelRequired: 0,
     specs: { type: 'Air', tdp: '65W', noise: 'yes' }

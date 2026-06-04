@@ -16,6 +16,29 @@ function roundMoney(value) {
   return Math.max(0, Math.round(value * 100) / 100);
 }
 
+const REPAIR_RATE = 0.25;
+const MIN_REPAIR_COST_PER_PART = 5;
+const THERMAL_DECAY_RATE = 0.055;
+
+export function calculateRepairCost(pc) {
+  if (!pc?.parts || !pc?.wear) return 0;
+
+  let total = 0;
+  for (const [slot, partId] of Object.entries(pc.parts)) {
+    if (!partId) continue;
+    const part = PARTS[partId];
+    if (!part) continue;
+
+    const wear = Math.max(0, Math.min(100, Number(pc.wear?.[slot] || 0)));
+    if (wear <= 0) continue;
+
+    const partValue = Math.max(part.price || 0, part.sellPrice || 0, 25);
+    total += Math.max(MIN_REPAIR_COST_PER_PART, partValue * (wear / 100) * REPAIR_RATE);
+  }
+
+  return roundMoney(total);
+}
+
 const CORE_COMPONENTS = [
   { key: 'cpu', label: 'CPU' },
   { key: 'gpu', label: 'GPU' },
